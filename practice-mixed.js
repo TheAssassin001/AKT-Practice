@@ -578,14 +578,27 @@ function setupModeModal() {
   }
 }
 
+// --- Timer logic helpers ---
+function formatTime(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
+}
+
 // --- Timer logic for Exam Mode ---
 // [FRONTEND-FINAL] Timed-out handling is fixed here
 function startExamTimer() {
   if (timerInterval) clearInterval(timerInterval);
+
+  // Show the side-panel timer container
+  const timerContainer = document.getElementById('exam-timer-container');
+  if (timerContainer) timerContainer.style.display = 'block';
+
   timerInterval = setInterval(() => {
     timeLeft--;
-    const timerValue = document.getElementById('timer-value');
-    if (timerValue) timerValue.textContent = timeLeft;
+    const display = document.getElementById('timer-display');
+    if (display) display.textContent = formatTime(timeLeft);
 
     // Save state periodically to persist timer
     if (timeLeft % AUTO_SAVE_INTERVAL === 0) {
@@ -609,6 +622,25 @@ function stopExamTimer() {
 }
 
 // [FRONTEND-FINAL] Navigation and question rendering logic is fixed here
+// --- Helper to get consistent question codes ---
+function getQuestionCode(type, index) {
+  const prefixMap = {
+    'sba': 'Q',
+    'emq': 'EMQ',
+    'mba': 'MBA',
+    'numeric': 'Q'
+  };
+  return `${prefixMap[type] || 'Q'}${index + 1}`;
+}
+
+// Clean theme/topic strings for display
+function cleanThemeString(str) {
+  if (!str) return "";
+  // Remove prefixes like "EMQ: ", "SBA: ", etc.
+  return str.replace(/^(EMQ|SBA|MBA|Numeric):\s*/i, "").trim();
+}
+
+// --- Question rendering flow --- 
 function renderQuestion() {
   // If no questions, show a friendly message and return
   if (!questions || questions.length === 0) {
@@ -659,8 +691,8 @@ function renderQuestion() {
   // Render right panel with status squares
   renderStatusPanel();
 
-  // Question code (e.g., Q1, Q2, EMQ1, ...)
-  let code = (q.type === 'sba') ? `Q${currentQuestion + 1}` : `EMQ${currentQuestion + 1}`;
+  // Question code (e.g., Q1, EMQ2, MBA3, ...)
+  let code = getQuestionCode(q.type, currentQuestion);
 
   // Guard: avoid accessing undefined questionStates[currentQuestion]
   if (!questionStates || !questionStates[currentQuestion]) {
@@ -676,21 +708,30 @@ function renderQuestion() {
     : '<svg width="18" height="18" viewBox="0 0 13 13" style="vertical-align:middle;opacity:0.5;" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 2.5V10.5" stroke="#1976d2" stroke-width="2" stroke-linecap="round"/><path d="M3 2.5L10 3.5L7.5 6L10 8.5L3 9.5" fill="#1976d2" stroke="#1976d2" stroke-width="1.5"/></svg>';
   let flagBtn = `<button id="flag-btn" class="flag-btn" title="Flag for review" aria-label="${questionStates[currentQuestion].flagged ? 'Unflag this question' : 'Flag this question for review'}">${flagIconSvg}</button>`;
 
-  // Generate timer HTML once for all question types
-  let timerHtml = '';
-  if (quizMode === 'exam' && timeLeft !== null) {
-    timerHtml = `<div id="timer" class="timer-box">Time left: <span id="timer-value">${timeLeft}</span> seconds</div>`;
+  const questionTheme = cleanThemeString(q.theme || q.topic || "");
+  const headerThemeHtml = questionTheme ? `<span class="question-theme">${questionTheme}</span>` : "";
+
+  const sharedHeader = `
+    <div class="question-header">
+      <span class="question-code">${code}</span>
+      ${flagBtn}
+      ${headerThemeHtml}
+    </div>
+  `;
+
+  // Ensure correct timer visibility
+  const timerContainer = document.getElementById('exam-timer-container');
+  if (timerContainer) {
+    timerContainer.style.display = (quizMode === 'exam' && !testEnded) ? 'block' : 'none';
+    const display = document.getElementById('timer-display');
+    if (display && timeLeft !== null) display.textContent = formatTime(timeLeft);
   }
 
   // Handle known question types, else fail gracefully
   if (q.type === 'sba') {
     const saved = questionStates[currentQuestion].answer;
     section.innerHTML = `
-      ${timerHtml}
-      <div class="question-header">
-        <span class="question-code">${code}</span>
-        ${flagBtn}
-      </div>
+      ${sharedHeader}
       <form class="question-form" id="mcq-form" aria-label="Single best answer question">
         <fieldset id="mcq-fieldset">
           <legend>${q.stem}</legend>
@@ -770,12 +811,7 @@ function renderQuestion() {
       ? questionStates[currentQuestion].answer
       : (q.stems ? Array(q.stems.length).fill(null) : []);
     section.innerHTML = `
-      ${timerHtml}
-      <div class="question-header">
-        <span class="question-code">${code}</span>
-        ${flagBtn}
-      </div>
-      <h2>EMQ: ${q.theme}</h2>
+      ${sharedHeader}
       <div class="emq-options-box">
         <strong>Options:</strong>
         <div class="emq-options-list">
@@ -876,12 +912,7 @@ function renderQuestion() {
     // ...existing numeric code...
     const numericSaved = questionStates[currentQuestion].answer;
     section.innerHTML = `
-      ${timerHtml}
-      <div class="question-header">
-        <span class="question-code">Q${currentQuestion + 1}</span>
-        ${flagBtn}
-      </div>
-      <h2>Numeric Question</h2>
+      ${sharedHeader}
       <form class="question-form" id="numeric-form">
         <fieldset id="numeric-fieldset">
           <legend>${q.stem}</legend>
@@ -959,11 +990,7 @@ function renderQuestion() {
     }
 
     section.innerHTML = `
-      ${timerHtml}
-      <div class="question-header">
-        <span class="question-code">${code}</span>
-        ${flagBtn}
-      </div>
+      ${sharedHeader}
       <form class="question-form" id="mba-form" aria-label="Multiple best answer question">
         <fieldset id="mba-fieldset">
           <legend>${q.stem}</legend>
@@ -1244,7 +1271,7 @@ function renderStatusPanel() {
 
 // Create a new status square element
 function createStatusSquare(q, idx) {
-  let code = (q.type === 'sba') ? `Q${idx + 1}` : `EMQ${idx + 1}`;
+  let code = getQuestionCode(q.type, idx);
   let state = questionStates[idx]?.status;
   let flagged = questionStates[idx]?.flagged;
   let color = state === 'correct' ? '#4caf50' : state === 'incorrect' ? '#e53935' : state === 'partial' ? '#ff9800' : '#fff';
@@ -1294,7 +1321,7 @@ function createStatusSquare(q, idx) {
 
 // Update an existing status square
 function updateStatusSquare(square, q, idx) {
-  let code = (q.type === 'sba') ? `Q${idx + 1}` : `EMQ${idx + 1}`;
+  let code = getQuestionCode(q.type, idx);
   let state = questionStates[idx]?.status;
   let flagged = questionStates[idx]?.flagged;
   let color = state === 'correct' ? '#4caf50' : state === 'incorrect' ? '#e53935' : state === 'partial' ? '#ff9800' : '#fff';

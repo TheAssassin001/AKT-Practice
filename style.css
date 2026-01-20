@@ -85,7 +85,7 @@ body {
     flex-direction: row;
     flex-wrap: wrap;
     gap: 8px;
-    justify-content: flex-end;
+    justify-content: flex-start;
     background: var(--panel-bg);
     padding: 0.5rem 0.75rem;
     border-radius: 10px;
@@ -172,6 +172,16 @@ body {
     font-size: 1.1rem;
     color: var(--accent-color);
     letter-spacing: 0.5px;
+}
+
+.question-theme {
+    font-size: 1.1rem;
+    color: var(--accent-color);
+    font-weight: bold;
+    margin-left: 0.8rem;
+    border-left: 2px solid var(--border-color);
+    padding-left: 0.8rem;
+    text-transform: capitalize;
 }
 
 /* EMQ options box styling */
@@ -376,11 +386,15 @@ body {
 }
 
 .question-form legend {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     color: var(--text-primary);
-    font-weight: 500;
+    font-weight: 400;
     margin-bottom: 1.2rem;
-    padding-bottom: 0.5rem;
+    padding: 0;
+    margin-left: 0;
+    display: block;
+    width: 100%;
+    line-height: 1.6;
 }
 
 .option {
@@ -1130,4 +1144,41 @@ p {
     border-color: #1976d2;
     transform: scale(1.02);
     box-shadow: 0 6px 15px rgba(25, 118, 210, 0.1);
+}
+
+/* Exam Timer Card in Side Panel */
+.exam-timer-card {
+    background-color: #e0e0e0;
+    border-radius: 8px;
+    padding: 1.5rem;
+    width: 100%;
+    margin-bottom: 2rem;
+    text-align: center;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    box-sizing: border-box;
+}
+
+.timer-label {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.timer-digit {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #333;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+@media (max-width: 950px) {
+    .exam-timer-card {
+        padding: 0.8rem;
+        margin-bottom: 1rem;
+    }
+
+    .timer-digit {
+        font-size: 1.8rem;
+    }
 }
