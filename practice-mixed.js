@@ -15,6 +15,7 @@ const SECONDS_PER_QUESTION = 60;
 const AUTO_SAVE_INTERVAL = 5; // Save every 5 seconds during exam
 const STORAGE_KEY = 'quizStateV2';
 const WEAK_TOPICS_KEY = 'weakTopics';
+const FLAGGED_QUESTIONS_KEY = 'akt-flagged-questions';
 const DISTINCTION_THRESHOLD = 0.8;
 const WEAK_TOPIC_THRESHOLD = 0.7;
 const SMART_REVISION_LIMIT = 20;
@@ -71,6 +72,20 @@ import { supabase } from './supabase.js';
 let allQuestions = [];
 let questions = [];
 let questionsLoading = true;
+
+// --- State variables ---
+let questionStates = [];
+let testEnded = false;
+let currentQuestion = 0;
+let currentEmqStem = 0;
+let totalScore = 0;
+let totalPossible = 0;
+let quizMode = null;
+let selectedType = 'mixed';
+let examDuration = 0;
+let timeLeft = null;
+let timerInterval = null;
+let reviewMode = false;
 
 // Standard Fisher-Yates shuffle
 function shuffleArray(array) {
@@ -144,8 +159,21 @@ async function loadQuestionsFromSupabase() {
           q.correct = q.correct_answer !== undefined ? q.correct_answer : null;
         }
 
-        // Numeric tolerance
-        if (q.type === 'numeric' && q.tolerance) {
+        // Numeric specific normalization
+        if (q.type === 'numeric') {
+          // Map to the expected property name
+          let rawCorrect = q.correct !== null ? q.correct : q.correct_answer;
+
+          if (typeof rawCorrect === 'object' && rawCorrect !== null) {
+            // Handle if answer is wrapped in an object { value: 20 } or { answer: 20 }
+            q.correctAnswer = parseFloat(rawCorrect.value || rawCorrect.answer || rawCorrect.correct || 0);
+          } else {
+            q.correctAnswer = parseFloat(rawCorrect) || 0;
+          }
+
+          q.tolerance = parseFloat(q.tolerance) || 0;
+        } else if (q.type === 'numeric' && q.tolerance) {
+          // Keep existing tolerance parsing just in case
           q.tolerance = parseFloat(q.tolerance) || 0;
         }
 
@@ -479,24 +507,16 @@ function clearQuizState() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-// --- State variables ---
-// --- FRONTEND-FINAL: The following logic is frozen and backend-agnostic ---
-// --- Scoring, timed-out, and navigation rules are not to be changed by backend ---
-let questionStates = [];
-let testEnded = false;
-let currentQuestion = 0;
-let totalScore = 0; // [FRONTEND-FINAL] Scoring logic is fixed here
-let totalPossible = 0;
+// Update flagged question status when question is answered
+function updateFlaggedQuestionStatus(questionId, status) {
+  const flaggedData = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY) || '{}');
+  if (flaggedData[questionId]) {
+    flaggedData[questionId].status = status;
+    localStorage.setItem(FLAGGED_QUESTIONS_KEY, JSON.stringify(flaggedData));
+  }
+}
 
-// --- Mode and timer state ---
-let quizMode = null; // 'exam' or 'practice'
-let selectedType = 'mixed'; // 'sba', 'emq', 'mixed'
-let examDuration = 0;
-let timeLeft = null;
-let timerInterval = null;
 
-// --- Review mode flag ---
-let reviewMode = false;
 
 // --- Mode selection modal logic ---
 function showModeModal() {
@@ -948,7 +968,7 @@ function renderQuestion() {
         <fieldset id="mba-fieldset">
           <legend>${q.stem}</legend>
           <div class="mba-instruction" style="background: #e3f2fd; padding: 0.8rem 1rem; border-radius: 6px; margin-bottom: 1rem; color: #1565c0; font-weight: 500;">
-            Select exactly ${requiredCount} answer${requiredCount !== 1 ? 's' : ''}
+            Select ${requiredCount} answer${requiredCount !== 1 ? 's' : ''} (minimum 2 to submit)
             <span id="mba-counter" style="float: right; font-weight: 700;">0 / ${requiredCount}</span>
           </div>
           ${q.options.map((opt, i) => {
@@ -962,7 +982,7 @@ function renderQuestion() {
         </fieldset>
         
         <button type="submit" class="submit-btn" aria-label="Submit your answers" disabled>Submit</button>
-        <p style="font-size: 0.8rem; color: #999; text-align: center; margin-top: 0.5rem;">Tip: Select exactly ${requiredCount} option${requiredCount !== 1 ? 's' : ''}</p>
+        <p style="font-size: 0.8rem; color: #999; text-align: center; margin-top: 0.5rem;">Tip: Select at least 2 options to enable submit (${requiredCount} needed for full credit)</p>
       </form>
       <div id="explanation" class="explanation-box" style="display:none;"></div>
     `;
@@ -1054,6 +1074,31 @@ function renderQuestion() {
   document.getElementById('flag-btn').onclick = function (e) {
     e.preventDefault();
     questionStates[currentQuestion].flagged = !questionStates[currentQuestion].flagged;
+
+    // Save to persistent flagged questions storage
+    const questionId = questions[currentQuestion]?.id;
+
+    if (!questionId || questionId === 'NaN') {
+      console.warn('Attempted to flag a question with an invalid ID:', questionId);
+      saveQuizState();
+      renderQuestion();
+      return;
+    }
+
+    const flaggedData = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY) || '{}');
+
+    if (questionStates[currentQuestion].flagged) {
+      // Add to flagged questions
+      flaggedData[questionId] = {
+        status: questionStates[currentQuestion].status || 'not-attempted',
+        flaggedAt: new Date().toISOString()
+      };
+    } else {
+      // Remove from flagged questions
+      delete flaggedData[questionId];
+    }
+
+    localStorage.setItem(FLAGGED_QUESTIONS_KEY, JSON.stringify(flaggedData));
     saveQuizState();
     renderQuestion();
   };
@@ -1684,8 +1729,15 @@ function attachMbaHandlers(q) {
     const checked = Array.from(fieldset.querySelectorAll('input[type=checkbox]:checked'));
     const count = checked.length;
     counter.textContent = `${count} / ${requiredCount}`;
-    submitBtn.disabled = (count !== requiredCount);
-    submitBtn.title = count === requiredCount ? "Submit your answers" : `Select exactly ${requiredCount} option${requiredCount !== 1 ? 's' : ''}`;
+    // Enable submit when at least 2 options are selected (early submission allowed)
+    submitBtn.disabled = (count < 2);
+    if (count < 2) {
+      submitBtn.title = "Select at least 2 options to submit";
+    } else if (count === requiredCount) {
+      submitBtn.title = "Submit your answers";
+    } else {
+      submitBtn.title = `Submit early (${count}/${requiredCount} selected)`;
+    }
   };
 
   // Attach change listeners to checkboxes
@@ -1706,7 +1758,8 @@ function attachMbaHandlers(q) {
     const selected = Array.from(fieldset.querySelectorAll('input[type=checkbox]:checked'))
       .map(cb => parseInt(cb.value));
 
-    if (selected.length !== requiredCount) return; // Shouldn't happen due to disabled button
+    // Allow early submission with at least 2 selections
+    if (selected.length < 2) return;
 
     questionStates[currentQuestion].answer = selected;
     const correctIndices = Array.isArray(q.correct) ? q.correct : [];

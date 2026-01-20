@@ -84,21 +84,23 @@ body {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
     justify-content: flex-end;
     background: var(--panel-bg);
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0.75rem;
     border-radius: 10px;
     box-shadow: 0 2px 8px var(--shadow-color);
     z-index: 1;
     transition: background-color 0.3s ease;
+    max-width: 310px;
+    /* 10 squares × 22px + 9 gaps × 8px + padding = 220 + 72 + 24 = 316px */
 }
 
 /* Grid square styling */
 .status-square {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
     border: 1px solid var(--border-color);
     cursor: pointer;
     transition: box-shadow 0.2s, border 0.2s, background-color 0.3s ease;
@@ -107,7 +109,7 @@ body {
     align-items: center;
     justify-content: center;
     position: relative;
-    font-size: 1rem;
+    font-size: 0.8rem;
     background: var(--card-bg);
     overflow: hidden;
 }
@@ -121,12 +123,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
+    font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-primary);
     z-index: 1;
     pointer-events: none;
-    padding-right: 12px;
+    padding-right: 0;
 }
 
 .status-square.active {
@@ -136,10 +138,10 @@ body {
 
 .status-flag-marker {
     position: absolute;
-    top: 2px;
-    right: 2px;
-    width: 13px;
-    height: 13px;
+    top: 1px;
+    right: 1px;
+    width: 10px;
+    height: 10px;
     z-index: 3;
     pointer-events: none;
     display: block;
