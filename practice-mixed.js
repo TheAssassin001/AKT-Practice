@@ -745,10 +745,10 @@ function renderQuestion() {
 
   const sharedHeader = `
     <div class="question-header">
-      <span class="question-counter" style="color: #4caf50; font-weight: bold; font-size: 1.1rem;">${questionCounter}</span>
+      <span class="question-counter" style="color: #1565c0; font-weight: bold; font-size: 1.1rem;">${questionCounter}</span>
       ${flagBtn}
-      ${categoryName ? `<span class="question-category" style="color: #d32f2f; font-weight: bold; font-size: 1rem; margin-left: 0.8rem; border-left: 2px solid #e0e0e0; padding-left: 0.8rem;">${categoryName}</span>` : ''}
-      ${codeText ? `<span class="question-codes" style="color: #1976d2; font-size: 0.85rem; margin-left: 0.8rem; color: #999;">${codeText}</span>` : ''}
+      ${categoryName ? `<span class="question-category" style="color: #1565c0; font-weight: bold; font-size: 1rem; margin-left: 0.8rem; border-left: 2px solid #e0e0e0; padding-left: 0.8rem;">${categoryName}</span>` : ''}
+      ${codeText ? `<span class="question-codes" style="color: #1565c0; font-size: 0.85rem; margin-left: 0.8rem;">${codeText}</span>` : ''}
     </div>
   `;
 
