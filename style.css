@@ -461,7 +461,9 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 2rem;
-    max-width: 400px;
+    width: 100%;
+    max-width: 500px;
+    min-height: 320px;
     text-align: left;
     text-decoration: none;
     color: var(--text-primary);
