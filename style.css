@@ -475,10 +475,10 @@ body {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: 12px;
-    padding: 1.25rem 1.5rem;
+    padding: 1rem 1.5rem;
     width: 100%;
     max-width: 500px;
-    min-height: 220px;
+    min-height: 180px;
     text-align: left;
     text-decoration: none;
     color: var(--text-primary);

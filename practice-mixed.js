@@ -768,7 +768,7 @@ function renderQuestion() {
         } else if (parseInt(saved) === idx && !isCorrect) {
           label.classList.add('option-wrong');
         }
-        if (q.correct === idx) {
+        if (correctIdx === idx) {
           label.classList.add('option-correct');
         }
       });
@@ -853,9 +853,11 @@ function renderQuestion() {
       const fieldset = document.getElementById('emq-fieldset');
       const explanationBox = document.getElementById('explanation');
       // Defensive: ensure q.correct and saved are arrays of correct length
-      const correctArr = Array.isArray(q.correct) && q.correct.length === q.stems.length
-        ? q.correct
-        : q.stems.map(stem => stem.correct);
+      const correctArr = questionStates[currentQuestion].shuffledStemCorrectIndices
+        ? questionStates[currentQuestion].shuffledStemCorrectIndices
+        : (Array.isArray(q.correct) && q.correct.length === q.stems.length
+          ? q.correct
+          : q.stems.map(stem => stem.correct));
       const savedArr = Array.isArray(saved) && saved.length === q.stems.length
         ? saved
         : Array(q.stems.length).fill(null);
