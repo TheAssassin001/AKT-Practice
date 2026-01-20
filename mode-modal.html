@@ -1,0 +1,32 @@
+<!-- Mode selection modal -->
+<div id="mode-modal" class="modal"
+  style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;backdrop-filter: blur(4px);">
+  <div class="modal-content"
+    style="background:#fff;padding:2.5rem;border-radius:12px;max-width:400px;text-align:center;box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+    <h2 id="modal-title" style="margin-top: 0; color: #1976d2;">Start Your Test</h2>
+    <p id="modal-subtitle" style="color: #666; margin-bottom: 2rem;">Choose your preferred test format</p>
+
+    <div id="type-select-btns" style="display: grid; gap: 1rem;">
+      <button id="sba-exam-btn" class="cta-btn" style="margin:0; width:100%;">SBA Only (Exam)</button>
+      <button id="emq-exam-btn" class="cta-btn" style="margin:0; width:100%;">EMQ Only (Exam)</button>
+      <button id="mba-exam-btn" class="cta-btn" style="margin:0; width:100%;">MBA Only (Exam)</button>
+      <button id="mixed-exam-btn" class="cta-btn" style="margin:0; width:100%; background: #1565c0;">Mixed
+        (Exam)</button>
+      <hr style="width: 100%; border: 0; border-top: 1px solid #eee; margin: 0.5rem 0;">
+      <button id="sba-practice-btn" class="cta-btn" style="margin:0; width:100%; background:#f5f5f5; color:#333;">SBA
+        Only (Practice)</button>
+      <button id="emq-practice-btn" class="cta-btn" style="margin:0; width:100%; background:#f5f5f5; color:#333;">EMQ
+        Only (Practice)</button>
+      <button id="mba-practice-btn" class="cta-btn" style="margin:0; width:100%; background:#f5f5f5; color:#333;">MBA
+        Only (Practice)</button>
+      <button id="mixed-practice-btn" class="cta-btn"
+        style="margin:0; width:100%; background:#f5f5f5; color:#333;">Mixed (Practice)</button>
+    </div>
+
+    <div id="simple-mode-btns" style="display: none; grid-template-columns: 1fr; gap: 1rem;">
+      <button id="simple-exam-btn" class="cta-btn" style="margin:0; width:100%;">Exam Mode (Timed)</button>
+      <button id="simple-practice-btn" class="cta-btn"
+        style="margin:0; width:100%; background:#f5f5f5; color:#333;">Practice Mode (Untimed)</button>
+    </div>
+  </div>
+</div>

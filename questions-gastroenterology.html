@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gastroenterology Questions - AKT Exam</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>AKT Practice</h1>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="practice.html">Practice</a></li>
+                    <li><a href="about.html">About</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main class="container">
+        <a href="practice.html" class="back-link">&larr; Back to Practice</a>
+        <section class="exam-question">
+            <h2>Practice Question: Gastroenterology</h2>
+            <form class="question-form" id="mcq-form">
+                <fieldset id="mcq-fieldset">
+                    <legend>Which of the following is the most appropriate investigation for a patient with suspected coeliac disease?</legend>
+                    <div class="option">
+                        <input type="radio" id="option1" name="answer" value="A">
+                        <label for="option1">A. Colonoscopy</label>
+                    </div>
+                    <div class="option">
+                        <input type="radio" id="option2" name="answer" value="B">
+                        <label for="option2">B. Anti-tTG antibody test</label>
+                    </div>
+                    <div class="option">
+                        <input type="radio" id="option3" name="answer" value="C">
+                        <label for="option3">C. Abdominal ultrasound</label>
+                    </div>
+                    <div class="option">
+                        <input type="radio" id="option4" name="answer" value="D">
+                        <label for="option4">D. Barium swallow</label>
+                    </div>
+                    <div class="option">
+                        <input type="radio" id="option5" name="answer" value="E">
+                        <label for="option5">E. CT scan of abdomen</label>
+                    </div>
+                </fieldset>
+                <button type="submit" class="submit-btn">Submit</button>
+            </form>
+            <div id="explanation" class="explanation-box" style="display:none;">
+                <div id="feedback"></div>
+                <div class="explanation-content">
+                    <div class="correct-answer"><strong>Correct answer:</strong> B. Anti-tTG antibody test</div>
+                    <div class="explanation-text">
+                        <strong>Explanation:</strong> <span id="explanation-text">This is a dummy explanation. Anti-tTG antibody testing is the recommended initial investigation for suspected coeliac disease.</span>
+                    </div>
+                    <div class="further-reading">
+                        <strong>Further Reading:</strong>
+                        <ul class="reading-links">
+                            <li><a href="https://cks.nice.org.uk/topics/coeliac-disease/" target="_blank" rel="noopener">NICE CKS: Coeliac Disease</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <div class="container">
+            <small class="muted">For academic use only. &copy; 2026 AKT Practice Platform</small>
+        </div>
+    </footer>
+    <script src="app.js"></script>
+</body>
+</html>

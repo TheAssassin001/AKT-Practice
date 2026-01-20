@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Resources - AKT Exam</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .study-section {
+            margin-bottom: 4rem;
+            text-align: left;
+        }
+
+        .study-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .resource-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .resource-card:hover {
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .resource-card h3 {
+            margin-top: 0;
+            color: #1565c0;
+        }
+
+        .coming-soon {
+            display: inline-block;
+            background: #eee;
+            color: #666;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <h1>AKT Practice</h1>
+            <nav>
+                <ul class="nav-list">
+                    <li><a href="index.html">Home</a></li>
+                    <li class="dropdown">
+                        <a href="practice.html">Practice <span class="nav-arrow">▼</span></a>
+                        <div class="dropdown-content">
+                            <a href="categories.html">Practice by category</a>
+                            <a href="practice-mixed.html?mode=mock">Mock Exam</a>
+                            <a href="practice-mixed.html?type=sba">SBA Mastery</a>
+                            <a href="practice-mixed.html?type=emq">EMQ Challenge</a>
+                        </div>
+                    </li>
+                    <li class="dropdown">
+                        <a href="study.html" class="active">Study <span class="nav-arrow">▼</span></a>
+                        <div class="dropdown-content">
+                            <a href="study.html#guides">Revision Guides</a>
+                            <a href="study.html#resources">Quick References</a>
+                        </div>
+                    </li>
+                    <li><a href="about.html">About</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main class="container">
+        <section style="max-width: 900px;">
+            <h2>Study Resources</h2>
+            <p style="color: #666; margin-bottom: 3rem;">Access core knowledge and revision materials to supplement your
+                practice.</p>
+
+            <div id="guides" class="study-section">
+                <h3>Revision Guides</h3>
+                <div class="study-grid">
+                    <div class="resource-card">
+                        <span class="coming-soon">Coming Soon</span>
+                        <h3>Clinical Pharmacokinetics</h3>
+                        <p>A deep dive into drug metabolism and clearance for the AKT.</p>
+                    </div>
+                    <div class="resource-card">
+                        <span class="coming-soon">Coming Soon</span>
+                        <h3>Statistics & Analytics</h3>
+                        <p>Understanding NNT, Odds Ratios, and P-values.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="resources" class="study-section">
+                <h3>Quick References</h3>
+                <div class="study-grid">
+                    <div class="resource-card">
+                        <span class="coming-soon">Coming Soon</span>
+                        <h3>Common Lab Values</h3>
+                        <p>Interactive reference for standard AKT investigations.</p>
+                    </div>
+                    <div class="resource-card">
+                        <span class="coming-soon">Coming Soon</span>
+                        <h3>NICE Guidelines Summary</h3>
+                        <p>Key snapshots of recent cardiovascular and endocrine updates.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <div class="container">
+            <small class="muted">For academic use only. &copy; 2026 AKT Practice Platform</small>
+        </div>
+    </footer>
+</body>
+
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mixed Practice - AKT Exam</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <h1>AKT Practice</h1>
+            <nav>
+                <ul class="nav-list">
+                    <li><a href="index.html">Home</a></li>
+                    <li class="dropdown">
+                        <a href="practice.html">Practice <span class="nav-arrow">▼</span></a>
+                        <div class="dropdown-content">
+                            <a href="categories.html">Practice by category</a>
+                            <a href="mocks.html">Mock Exam</a>
+                            <a href="practice-mixed.html?type=sba">SBA Mastery</a>
+                            <a href="practice-mixed.html?type=emq">EMQ Challenge</a>
+                            <a href="practice-mixed.html?type=mba">MBA Practice</a>
+                        </div>
+                    </li>
+                    <li class="dropdown">
+                        <a href="study.html">Study <span class="nav-arrow">▼</span></a>
+                        <div class="dropdown-content">
+                            <a href="study.html#guides">Revision Guides</a>
+                            <a href="study.html#resources">Quick References</a>
+                        </div>
+                    </li>
+                    <li><a href="about.html">About</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main class="container">
+        <div class="back-btn-container" id="back-btn-container" style="display:none;">
+            <button id="exit-btn" class="back-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Back to Categories
+            </button>
+        </div>
+        <div class="main-flex-row">
+            <section class="exam-question" id="question-section">
+                <!-- Dynamic question content will be rendered here -->
+            </section>
+            <aside class="status-panel-container">
+                <div id="status-panel" class="status-panel"></div>
+            </aside>
+        </div>
+    </main>
+    <footer>
+        <div class="container">
+            <small class="muted">For academic use only. &copy; 2026 AKT Practice Platform</small>
+        </div>
+    </footer>
+    <!-- Lab Reference Button (FAB) -->
+    <button id="lab-ref-fab" class="lab-fab" title="Lab Reference Values">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+        </svg>
+    </button>
+
+    <!-- Lab Reference Modal -->
+    <div id="lab-modal" class="lab-modal">
+        <div class="lab-modal-content">
+            <div class="lab-modal-header">
+                <h3>Lab Reference Values</h3>
+                <button id="close-lab-modal" class="close-btn">&times;</button>
+            </div>
+            <div class="lab-modal-body">
+                <table class="lab-table">
+                    <thead>
+                        <tr>
+                            <th>Investigation</th>
+                            <th>Reference Range</th>
+                            <th>Units</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Sodium</td>
+                            <td>135 - 145</td>
+                            <td>mmol/L</td>
+                        </tr>
+                        <tr>
+                            <td>Potassium</td>
+                            <td>3.5 - 5.0</td>
+                            <td>mmol/L</td>
+                        </tr>
+                        <tr>
+                            <td>Creatinine</td>
+                            <td>60 - 110</td>
+                            <td>µmol/L</td>
+                        </tr>
+                        <tr>
+                            <td>HbA1c</td>
+                            <td>&lt; 42</td>
+                            <td>mmol/mol</td>
+                        </tr>
+                        <tr>
+                            <td>Hemoglobin (M)</td>
+                            <td>130 - 180</td>
+                            <td>g/L</td>
+                        </tr>
+                        <tr>
+                            <td>Hemoglobin (F)</td>
+                            <td>115 - 160</td>
+                            <td>g/L</td>
+                        </tr>
+                        <tr>
+                            <td>CRP</td>
+                            <td>&lt; 5</td>
+                            <td>mg/L</td>
+                        </tr>
+                        <tr>
+                            <td>TSH</td>
+                            <td>0.4 - 4.5</td>
+                            <td>mU/L</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script type="module" src="practice-mixed.js"></script>
+</body>
+
+</html>

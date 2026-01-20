@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice by Category - AKT Exam</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+            text-align: left;
+        }
+
+        .category-card {
+            background: #e3f2fd;
+            border: 2px solid #bbdefb;
+            border-radius: 15px;
+            padding: 2rem;
+            text-decoration: none;
+            color: #1976d2;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.08);
+        }
+
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(25, 118, 210, 0.15);
+            border-color: #1976d2;
+            background: #ffffff;
+        }
+
+        .category-card h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.4rem;
+            color: #1565c0;
+        }
+
+        .category-stats {
+            font-size: 1rem;
+            color: #455a64;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .stat-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .stat-flagged {
+            color: #d32f2f;
+            font-weight: 500;
+        }
+
+        .stat-complete {
+            color: #2e7d32;
+            font-weight: 500;
+        }
+
+        .loading-container {
+            padding: 4rem;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <h1>AKT Practice</h1>
+            <nav>
+                <ul class="nav-list">
+                    <li><a href="index.html">Home</a></li>
+                    <li class="dropdown">
+                        <a href="practice.html" class="active">Practice <span class="nav-arrow">▼</span></a>
+                        <div class="dropdown-content">
+                            <a href="categories.html">Practice by category</a>
+                            <a href="practice-mixed.html?mode=mock">Mock Exam</a>
+                            <a href="practice-mixed.html?type=sba">SBA Mastery</a>
+                            <a href="practice-mixed.html?type=emq">EMQ Challenge</a>
+                            <a href="practice-mixed.html?type=mba">MBA Practice</a>
+                        </div>
+                    </li>
+                    <li class="dropdown">
+                        <a href="study.html">Study <span class="nav-arrow">▼</span></a>
+                        <div class="dropdown-content">
+                            <a href="study.html#guides">Revision Guides</a>
+                            <a href="study.html#resources">Quick References</a>
+                        </div>
+                    </li>
+                    <li><a href="about.html">About</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <main class="container">
+        <section style="max-width: 900px;">
+            <h2>Practice by Category</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 2rem;">Focus your revision on specific clinical
+                topics. Timed mode is disabled for category practice.</p>
+
+            <div id="category-container" class="category-grid">
+                <div class="loading-container">Loading clinical categories...</div>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <div class="container">
+            <small class="muted">For academic use only. &copy; 2026 AKT Practice Platform</small>
+        </div>
+    </footer>
+    <script type="module" src="categories.js"></script>
+</body>
+
+</html>
