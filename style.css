@@ -378,6 +378,7 @@ body {
     box-shadow: 0 2px 8px var(--shadow-color);
     padding: 2rem 2rem 1.5rem 2rem;
     transition: all 0.3s ease;
+    text-align: left;
 }
 
 .question-form fieldset {
@@ -464,9 +465,9 @@ body {
 .domain-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 2rem;
+    gap: 1rem;
     justify-content: center;
-    margin-top: 2.5rem;
+    margin-top: 1rem;
 }
 
 .practice-card {
