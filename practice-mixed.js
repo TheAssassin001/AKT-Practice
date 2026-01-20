@@ -428,9 +428,13 @@ let saveQuizStateTimeout = null;
 function saveQuizState(immediate = false) {
   // TODO: Store quiz state per user after authentication is implemented.
   const doSave = () => {
+    const params = new URLSearchParams(window.location.search);
+    const topicParam = params.get('topic');
+
     const state = {
       quizMode,
       selectedType,
+      selectedCategory: topicParam || null,
       questionIds: questions.map(q => q.id),
       questionStates,
       currentQuestion,
@@ -467,6 +471,15 @@ function loadQuizState(requiredType = null) {
   try {
     const state = JSON.parse(raw);
     if (!state || !Array.isArray(state.questionStates)) return false;
+
+    // Check if category matches (if we're on a category page)
+    const params = new URLSearchParams(window.location.search);
+    const currentCategory = params.get('topic');
+
+    if (currentCategory && state.selectedCategory !== currentCategory) {
+      console.log(`Saved state category (${state.selectedCategory}) does not match current category (${currentCategory}). Starting fresh.`);
+      return false;
+    }
 
     // Enforce type match if requested
     if (requiredType && state.selectedType !== requiredType) {
@@ -633,6 +646,12 @@ function stopExamTimer() {
 // [FRONTEND-FINAL] Navigation and question rendering logic is fixed here
 // --- Helper to get consistent question codes ---
 function getQuestionCode(type, index) {
+  // Use Question Code from database if available
+  const q = questions[index];
+  if (q && q['Question Code']) {
+    return q['Question Code'];
+  }
+  // Fallback to generated code
   const prefixMap = {
     'sba': 'Q',
     'emq': 'EMQ',
@@ -1930,7 +1949,7 @@ function startTest() {
   const topicParam = params.get('topic');
 
   if (topicParam) {
-    questions = allQuestions.filter(q => q.topic === topicParam);
+    questions = allQuestions.filter(q => q.Category === topicParam);
     showToast(`Category: ${topicParam}`);
   } else if (selectedType === 'sba') {
     questions = allQuestions.filter(q => q.type === 'sba');

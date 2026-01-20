@@ -26,7 +26,7 @@ async function initCategories() {
         // (or we can do it in the query if we wanted, but client-side is fine for current scale)
         const { data, error } = await supabase
             .from('questions')
-            .select('topic, type, flagged');
+            .select('Category, type');
 
         if (error) throw error;
 
@@ -41,7 +41,7 @@ async function initCategories() {
             // Filter by type if param exists
             if (typeParam && q.type !== typeParam) return;
 
-            const topic = q.topic || 'General';
+            const topic = q.Category || 'General';
             if (!topics[topic]) {
                 topics[topic] = { total: 0, completed: 0, flagged: 0 };
             }
@@ -107,15 +107,10 @@ async function initCategories() {
                         <h3 style="color: #2563a6; border-bottom: 2px solid #e0e0e0; padding-bottom: 0.5rem; margin-bottom: 1.5rem; font-size: 1.5rem;">${domain}</h3>
                         <div class="category-grid">
                             ${grouped[domain].map(topic => {
-                    const stats = topics[topic];
                     const typeQuery = typeParam ? `&type=${typeParam}` : '';
                     return `
                                     <a href="practice-mixed.html?topic=${encodeURIComponent(topic)}${typeQuery}" class="category-card">
                                         <h3>${topic}</h3>
-                                        <div class="category-stats">
-                                            <div class="stat-line"><span class="stat-complete">${stats.completed}</span> out of ${stats.total} complete</div>
-                                            <div class="stat-line"><span class="stat-flagged">${stats.flagged}</span> flagged</div>
-                                        </div>
                                     </a>
                                 `;
                 }).join('')}
