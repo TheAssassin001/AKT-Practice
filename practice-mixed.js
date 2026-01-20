@@ -238,8 +238,17 @@ async function loadQuestionsFromSupabase() {
         return q;
       });
 
+
+
       // Filter out skipped EMQs before rendering
+      const initialCount = questions_data.length;
       allQuestions = questions_data.filter(q => !q._skip);
+      const skippedCount = initialCount - allQuestions.length;
+
+      if (skippedCount > 0) {
+        console.warn(`Skipped ${skippedCount} questions due to missing/invalid data.`);
+        showToast(`Loaded ${allQuestions.length} questions. ${skippedCount} skipped (invalid data).`);
+      }
     }
   } catch (err) {
     console.error('Unexpected Supabase error:', err);
