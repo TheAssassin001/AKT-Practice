@@ -736,14 +736,19 @@ function renderQuestion() {
     : '<svg width="18" height="18" viewBox="0 0 13 13" style="vertical-align:middle;opacity:0.5;" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 2.5V10.5" stroke="#1976d2" stroke-width="2" stroke-linecap="round"/><path d="M3 2.5L10 3.5L7.5 6L10 8.5L3 9.5" fill="#1976d2" stroke="#1976d2" stroke-width="1.5"/></svg>';
   let flagBtn = `<button id="flag-btn" class="flag-btn" title="Flag for review" aria-label="${questionStates[currentQuestion].flagged ? 'Unflag this question' : 'Flag this question for review'}">${flagIconSvg}</button>`;
 
-  const questionTheme = cleanThemeString(q.theme || q.topic || "");
-  const headerThemeHtml = questionTheme ? `<span class="question-theme">${questionTheme}</span>` : "";
+  // Build header parts
+  const questionCounter = `Q${currentQuestion + 1}`;
+  const categoryName = q.Category || '';
+  const displayCode = q['Display Code'] || '';
+  const questionCode = q['Question Code'] || '';
+  const codeText = displayCode && questionCode ? `${displayCode} ${questionCode}` : (displayCode || questionCode || '');
 
   const sharedHeader = `
     <div class="question-header">
-      <span class="question-code">${code}</span>
+      <span class="question-counter" style="color: #4caf50; font-weight: bold; font-size: 1.1rem;">${questionCounter}</span>
       ${flagBtn}
-      ${headerThemeHtml}
+      ${categoryName ? `<span class="question-category" style="color: #d32f2f; font-weight: bold; font-size: 1rem; margin-left: 0.8rem; border-left: 2px solid #e0e0e0; padding-left: 0.8rem;">${categoryName}</span>` : ''}
+      ${codeText ? `<span class="question-codes" style="color: #1976d2; font-size: 0.85rem; margin-left: 0.8rem; color: #999;">${codeText}</span>` : ''}
     </div>
   `;
 
