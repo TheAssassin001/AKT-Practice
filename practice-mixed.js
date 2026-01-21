@@ -312,6 +312,7 @@ async function initializeApp() {
 
     const topicParam = params.get('topic');
     const modeParam = params.get('mode');
+    const examId = params.get('examId');
 
     if (topicParam) {
       selectedType = 'mixed'; // Use mixed for category filtering
@@ -320,6 +321,19 @@ async function initializeApp() {
     } else if (modeParam === 'mock') {
       selectedType = 'mixed';
       quizMode = 'exam';
+
+      // If examId is provided, select specific mock exam questions
+      if (examId) {
+        const mockQuestions = selectMockExamQuestions(allQuestions, examId);
+        if (mockQuestions.length < 20) {
+          alert(`Mock Exam ${examId} doesn't have enough questions (found ${mockQuestions.length}). Please try another mock.`);
+          window.location.href = 'mocks.html';
+          return;
+        }
+        // Override allQuestions with mock exam questions
+        allQuestions = mockQuestions;
+      }
+
       startTest();
     } else {
       showModeModal();
@@ -661,11 +675,39 @@ function getQuestionCode(type, index) {
   return `${prefixMap[type] || 'Q'}${index + 1}`;
 }
 
+// --- Helper to render question image if present ---
+function renderQuestionImage(imageUrl) {
+  console.log('renderQuestionImage called with:', imageUrl);
+  if (!imageUrl) return '';
+  return `<div class="question-image" style="margin: 1rem 0; text-align: center;">
+    <img src="${imageUrl}" alt="Question image" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+  </div>`;
+}
+
 // Clean theme/topic strings for display
 function cleanThemeString(str) {
   if (!str) return "";
   // Remove prefixes like "EMQ: ", "SBA: ", etc.
   return str.replace(/^(EMQ|SBA|MBA|Numeric):\s*/i, "").trim();
+}
+
+// --- Mock Exam Question Selection ---
+function selectMockExamQuestions(allQuestions, examId) {
+  // Deterministically select 20 questions for each mock exam
+  // Uses modulo to distribute questions evenly across 3 mocks
+  const examGroup = parseInt(examId);
+  if (isNaN(examGroup) || examGroup < 1 || examGroup > 3) {
+    console.error('Invalid examId:', examId);
+    return [];
+  }
+
+  // Filter questions by exam group (1, 2, or 3) and take first 20
+  const mockQuestions = allQuestions.filter((q, idx) => {
+    return (idx % 3) === (examGroup - 1);
+  }).slice(0, 20);
+
+  console.log(`Mock Exam ${examId}: Selected ${mockQuestions.length} questions`);
+  return mockQuestions;
 }
 
 // --- Question rendering flow --- 
@@ -765,6 +807,7 @@ function renderQuestion() {
     const saved = questionStates[currentQuestion].answer;
     section.innerHTML = `
       ${sharedHeader}
+      ${renderQuestionImage(q.images)}
       <form class="question-form" id="mcq-form" aria-label="Single best answer question">
         <fieldset id="mcq-fieldset">
           <legend>${q.stem}</legend>
@@ -845,6 +888,7 @@ function renderQuestion() {
       : (q.stems ? Array(q.stems.length).fill(null) : []);
     section.innerHTML = `
       ${sharedHeader}
+      ${renderQuestionImage(q.images)}
       <div class="emq-options-box">
         <strong>Options:</strong>
         <div class="emq-options-list">
@@ -948,6 +992,7 @@ function renderQuestion() {
     const numericSaved = questionStates[currentQuestion].answer;
     section.innerHTML = `
       ${sharedHeader}
+      ${renderQuestionImage(q.images)}
       <form class="question-form" id="numeric-form">
         <fieldset id="numeric-fieldset">
           <legend>${q.stem}</legend>
@@ -1026,6 +1071,7 @@ function renderQuestion() {
 
     section.innerHTML = `
       ${sharedHeader}
+      ${renderQuestionImage(q.images)}
       <form class="question-form" id="mba-form" aria-label="Multiple best answer question">
         <fieldset id="mba-fieldset">
           <legend>${q.stem}</legend>
