@@ -1184,3 +1184,199 @@ p {
         font-size: 1.8rem;
     }
 }
+
+/* =========================================
+   MOBILE RESPONSIVENESS (Max-width: 768px)
+   ========================================= */
+@media (max-width: 768px) {
+
+    /* Global Layout Adjustments */
+    .container {
+        padding: 0 1rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Header & Navigation */
+    header h1 {
+        font-size: 1.5rem;
+        padding: 1rem 0 0.5rem 0;
+        text-align: center;
+    }
+
+    nav {
+        margin-top: 0.5rem;
+        width: 100%;
+    }
+
+    nav ul {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+        width: 100%;
+        padding-bottom: 1rem;
+    }
+
+    nav li {
+        display: block;
+        width: 100%;
+        text-align: center;
+    }
+
+    nav a {
+        justify-content: center;
+        padding: 0.8rem;
+        font-size: 1.1rem;
+        /* Larger touch target */
+        background: rgba(255, 255, 255, 0.05);
+        /* Slight background for separation */
+    }
+
+    /* Dropdowns on Mobile: Always center aligned, potentially expand on click 
+       For simplicity, we'll keep them as hover/focus but ensure they don't go offscreen.
+       A stacked approach is better for mobile navigation lists. */
+    .dropdown:hover .dropdown-content,
+    .dropdown:focus-within .dropdown-content {
+        position: static;
+        /* Stack naturally */
+        float: none;
+        display: block;
+        visibility: visible;
+        opacity: 1;
+        width: 100%;
+        box-shadow: none;
+        background: #f0f4f8;
+        /* Distinct background */
+        border: none;
+        padding-left: 0;
+        transform: none;
+    }
+
+    .dropdown-content a {
+        padding: 0.8rem;
+        text-align: center;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    /* Bridge fix not needed for static positioning */
+    .dropdown::after {
+        display: none;
+    }
+
+    /* Main Content Layout */
+    .main-flex-row {
+        flex-direction: column;
+    }
+
+    .status-panel-container {
+        width: 100%;
+        margin-left: 0;
+        margin-top: 1.5rem;
+        align-items: center;
+        order: -1;
+        /* Optional: Move status to top? or keep at bottom. 
+                      Usually questions first, status later is better for flow, 
+                      BUT on mobile checking status might be needed. 
+                      Let's keep default order (question first) for now. */
+        order: 2;
+        /* Explicitly put at bottom if needed, or let natural flow handle it */
+    }
+
+    .exam-question {
+        width: 100%;
+        max-width: 100%;
+        margin-right: 0;
+        padding: 1.5rem 1rem;
+        /* Reduce padding */
+    }
+
+    /* Main Container Padding */
+    main.container {
+        padding: 1.5rem 1rem 2rem 1rem;
+        border-radius: 0;
+        /* Full width look */
+    }
+
+    /* Status Panel */
+    .status-panel {
+        max-width: 100%;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    /* Practice Cards */
+    .domain-list {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .practice-card {
+        max-width: 100%;
+        width: 100%;
+        min-height: auto;
+    }
+
+    /* Section Headers */
+    h2 {
+        font-size: 1.4rem;
+        margin-top: 1rem;
+    }
+
+    h3 {
+        font-size: 1.1rem;
+    }
+
+    /* Form Elements */
+    .option label {
+        font-size: 1.05rem;
+        /* Readable text */
+        display: block;
+        padding: 0.5rem 0;
+    }
+
+    .option input[type="radio"] {
+        transform: scale(1.2);
+        /* Larger radio buttons */
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 0.8rem;
+        font-size: 1.1rem;
+    }
+
+    /* Explanation Box */
+    .explanation-box {
+        padding: 1.5rem 1rem;
+        margin-top: 1.5rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Toast Notification */
+    .toast-notification {
+        width: 90%;
+        bottom: 20px;
+        left: 5%;
+        transform: none;
+        /* Override translate center */
+    }
+
+    .toast-notification.show {
+        transform: none;
+    }
+
+    /* Lab FAB */
+    .lab-fab {
+        bottom: 1.5rem;
+        right: 1.5rem;
+        width: 50px;
+        height: 50px;
+    }
+
+    /* Modal */
+    .lab-modal-content {
+        width: 95%;
+        margin: 20% auto;
+    }
+}
