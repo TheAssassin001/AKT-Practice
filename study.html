@@ -80,41 +80,36 @@
     </header>
     <main class="container">
         <section style="max-width: 900px;">
-            <h2>Study Resources</h2>
-            <p style="color: #666; margin-bottom: 3rem;">Access core knowledge and revision materials to supplement your
-                practice.</p>
+            <div id="static-content">
+                <h2>Study Resources</h2>
+                <p style="color: #666; margin-bottom: 3rem;">Access core knowledge and revision materials to supplement
+                    your
+                    practice.</p>
 
-            <div id="guides" class="study-section">
-                <h3>Revision Guides</h3>
-                <div class="study-grid">
-                    <div class="resource-card">
-                        <span class="coming-soon">Coming Soon</span>
-                        <h3>Clinical Pharmacokinetics</h3>
-                        <p>A deep dive into drug metabolism and clearance for the AKT.</p>
+                <div id="guides" class="study-section">
+                    <h3>Revision Guides</h3>
+                    <div id="guides-list" class="study-grid">
+                        <div class="loading-container">Loading revision guides...</div>
                     </div>
-                    <div class="resource-card">
-                        <span class="coming-soon">Coming Soon</span>
-                        <h3>Statistics & Analytics</h3>
-                        <p>Understanding NNT, Odds Ratios, and P-values.</p>
+                </div>
+
+                <div id="resources" class="study-section">
+                    <h3>Quick References</h3>
+                    <div class="study-grid">
+                        <div class="resource-card">
+                            <span class="coming-soon">Coming Soon</span>
+                            <h3>Common Lab Values</h3>
+                            <p>Interactive reference for standard AKT investigations.</p>
+                        </div>
+                        <div class="resource-card">
+                            <span class="coming-soon">Coming Soon</span>
+                            <h3>NICE Guidelines Summary</h3>
+                            <p>Key snapshots of recent cardiovascular and endocrine updates.</p>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <div id="resources" class="study-section">
-                <h3>Quick References</h3>
-                <div class="study-grid">
-                    <div class="resource-card">
-                        <span class="coming-soon">Coming Soon</span>
-                        <h3>Common Lab Values</h3>
-                        <p>Interactive reference for standard AKT investigations.</p>
-                    </div>
-                    <div class="resource-card">
-                        <span class="coming-soon">Coming Soon</span>
-                        <h3>NICE Guidelines Summary</h3>
-                        <p>Key snapshots of recent cardiovascular and endocrine updates.</p>
-                    </div>
-                </div>
-            </div>
+            <div id="dynamic-content" style="display: none;"></div>
         </section>
     </main>
     <footer>
@@ -122,6 +117,7 @@
             <small class="muted">For academic use only. &copy; 2026 AKT Practice Platform</small>
         </div>
     </footer>
+    <script type="module" src="study.js"></script>
 </body>
 
 </html>

@@ -381,11 +381,24 @@ async function initializeApp() {
     const modeParam = params.get('mode');
     const examId = params.get('examId');
 
+    const topicIdParam = params.get('topic_id'); // Add this
+
+    if (modeParam === 'study') {
+      // Force study mode
+      reviewMode = true;
+      quizMode = 'practice';
+    }
+
     if (topicParam) {
-      selectedType = 'mixed'; // Use mixed for category filtering
+      selectedType = 'mixed';
       quizMode = 'exam';
-      startTest(); // Start immediately for topic filtering
+      startTest();
       startExamTimer();
+    } else if (topicIdParam) { // NEW Check
+      selectedType = 'mixed';
+      quizMode = 'practice'; // Ensure practice mode for study
+      startTest();
+      // No timer for study mode
     } else if (modeParam === 'mock') {
       selectedType = 'mixed';
       quizMode = 'exam';
@@ -983,6 +996,104 @@ function renderQuestion() {
         } else {
           renderEndScreen();
           clearQuizState();
+        }
+      };
+      form.appendChild(nextBtn);
+    }
+    // FORCE STUDY MODE DISPLAY if enabled and not already answered/rendered above
+    if (reviewMode && questionStates[currentQuestion].status === 'not-attempted') {
+      // Auto-Select correct answer visually
+      const correctIdx = q.correct;
+      const radios = fieldset.querySelectorAll('input[type=radio]');
+      if (radios[correctIdx]) radios[correctIdx].checked = true;
+
+      const label = fieldset.querySelector(`label[for="option${correctIdx + 1}"]`);
+      if (label) label.classList.add('option-correct');
+
+      Array.from(radios).forEach(r => r.disabled = true);
+
+      explanationBox.innerHTML = renderExplanation({
+        isCorrect: true, // pretend correct for display
+        correctLabel: String.fromCharCode(65 + correctIdx),
+        correctText: (questionStates[currentQuestion].shuffledOptions || q.options)[correctIdx],
+        explanation: q.explanation,
+        furtherReading: q.furtherReading,
+        topicBtn: q.topicBtn || (q.topic ? { text: q.topic, url: '#' } : null)
+      });
+      explanationBox.style.display = 'block';
+
+      const submitBtn = form.querySelector('.submit-btn');
+      if (submitBtn) submitBtn.remove();
+
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = (currentQuestion < questions.length - 1) ? 'Next Question' : 'Back to Guide';
+      nextBtn.className = 'submit-btn next-btn';
+      nextBtn.style.display = 'block';
+      nextBtn.style.margin = '1rem auto 0 auto';
+      nextBtn.onclick = function (ev) {
+        ev.preventDefault();
+        if (currentQuestion < questions.length - 1) {
+          currentQuestion++;
+          renderQuestion();
+        } else {
+          // In study mode linked from guide, maybe go back? 
+          // unique behavior: go back to study page if topic_id present
+          const topicId = new URLSearchParams(window.location.search).get('topic_id');
+          if (topicId) {
+            window.location.href = `study.html?topic_id=${topicId}`;
+          } else {
+            renderEndScreen();
+          }
+        }
+      };
+      form.appendChild(nextBtn);
+    }
+    // FORCE STUDY MODE DISPLAY if enabled and not already answered/rendered above
+
+    // Check if we are in forced study mode (reviewMode is true, but status is not-attempted/clean)
+    if (reviewMode && questionStates[currentQuestion].status === 'not-attempted') {
+      // Auto-Select correct answer visually
+      const correctIdx = q.correct;
+      const radios = fieldset.querySelectorAll('input[type=radio]');
+      if (radios[correctIdx]) radios[correctIdx].checked = true;
+
+      const label = fieldset.querySelector(`label[for="option${correctIdx + 1}"]`);
+      if (label) label.classList.add('option-correct');
+
+      Array.from(radios).forEach(r => r.disabled = true);
+
+      explanationBox.innerHTML = renderExplanation({
+        isCorrect: true, // pretend correct for display
+        correctLabel: String.fromCharCode(65 + correctIdx),
+        correctText: (questionStates[currentQuestion].shuffledOptions || q.options)[correctIdx],
+        explanation: q.explanation,
+        furtherReading: q.furtherReading,
+        topicBtn: q.topicBtn || (q.topic ? { text: q.topic, url: '#' } : null)
+      });
+      explanationBox.style.display = 'block';
+
+      const submitBtn = form.querySelector('.submit-btn');
+      if (submitBtn) submitBtn.remove();
+
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = (currentQuestion < questions.length - 1) ? 'Next Question' : 'Back to Guide';
+      nextBtn.className = 'submit-btn next-btn';
+      nextBtn.style.display = 'block';
+      nextBtn.style.margin = '1rem auto 0 auto';
+      nextBtn.onclick = function (ev) {
+        ev.preventDefault();
+        if (currentQuestion < questions.length - 1) {
+          currentQuestion++;
+          renderQuestion();
+        } else {
+          // In study mode linked from guide, maybe go back? 
+          // unique behavior: go back to study page if topic_id present
+          const topicId = new URLSearchParams(window.location.search).get('topic_id');
+          if (topicId) {
+            window.location.href = `study.html?topic_id=${topicId}`;
+          } else {
+            renderEndScreen();
+          }
         }
       };
       form.appendChild(nextBtn);
@@ -2197,8 +2308,18 @@ function startTest() {
   // Filter questions based on selection
   const params = new URLSearchParams(window.location.search);
   const topicParam = params.get('topic');
+  const topicIdParam = params.get('topic_id');
 
-  if (topicParam) {
+  if (topicIdParam) {
+    questions = allQuestions.filter(q => q.topic_id === topicIdParam);
+    if (questions.length === 0) {
+      // Fallback: try filtering by topic name if we can match it, or just show warning
+      // For now, just show toast
+      showToast(`No questions found for this topic ID.`);
+    } else {
+      showToast(`Loaded ${questions.length} questions for this topic.`);
+    }
+  } else if (topicParam) {
     questions = allQuestions.filter(q => q.Category === topicParam);
     showToast(`Category: ${topicParam}`);
   } else if (selectedType === 'sba') {
@@ -2235,7 +2356,15 @@ function startTest() {
   totalPossible = 0;
   currentQuestion = 0;
   testEnded = false;
-  reviewMode = false;
+  testEnded = false;
+
+  // Check for study mode again to ensure reviewMode is set correctly
+  const modeParam = new URLSearchParams(window.location.search).get('mode');
+  if (modeParam === 'study') {
+    reviewMode = true;
+  } else {
+    reviewMode = false;
+  }
 
   examDuration = SECONDS_PER_QUESTION * questions.length;
   if (quizMode === 'exam') timeLeft = examDuration;
