@@ -316,8 +316,9 @@ async function initializeApp() {
 
     if (topicParam) {
       selectedType = 'mixed'; // Use mixed for category filtering
-      quizMode = 'practice';
+      quizMode = 'exam';
       startTest(); // Start immediately for topic filtering
+      startExamTimer();
     } else if (modeParam === 'mock') {
       selectedType = 'mixed';
       quizMode = 'exam';
@@ -335,6 +336,7 @@ async function initializeApp() {
       }
 
       startTest();
+      startExamTimer();
     } else {
       showModeModal();
     }
@@ -444,9 +446,11 @@ function saveQuizState(immediate = false) {
   const doSave = () => {
     const params = new URLSearchParams(window.location.search);
     const topicParam = params.get('topic');
+    const examId = params.get('examId');
 
     const state = {
       quizMode,
+      examId: examId || null,
       selectedType,
       selectedCategory: topicParam || null,
       questionIds: questions.map(q => q.id),
@@ -492,6 +496,27 @@ function loadQuizState(requiredType = null) {
 
     if (currentCategory && state.selectedCategory !== currentCategory) {
       console.log(`Saved state category (${state.selectedCategory}) does not match current category (${currentCategory}). Starting fresh.`);
+      return false;
+    }
+
+    // Check Exam ID match (prevents resuming Mock 1 when starting Mock 2)
+    const currentExamId = params.get('examId');
+    const savedExamId = state.examId || null;
+
+    console.log(`Debug LoadQuizState: CurrentID=${currentExamId}, SavedID=${savedExamId}`);
+
+    if (currentExamId !== savedExamId) {
+      console.log(`Exam ID mismatch (Current: ${currentExamId}, Saved: ${savedExamId}). Starting fresh.`);
+      return false;
+    }
+
+    // Check Mode intent (prevents resuming Practice when starting Mock)
+    const urlMode = params.get('mode');
+
+    console.log(`Debug LoadQuizState: UrlMode=${urlMode}, SavedMode=${state.quizMode}`);
+
+    if (urlMode === 'mock' && state.quizMode !== 'exam') {
+      console.log('Mode mismatch (URL implies Mock/Exam, State is not Exam). Starting fresh.');
       return false;
     }
 
