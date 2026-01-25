@@ -1446,7 +1446,70 @@ function renderQuestion() {
     });
   }
   // Save state after UI is fully rendered
+  // Check for revision guides (async)
+  checkAndRenderRevisionGuide(q);
+
   saveQuizState();
+}
+
+// --- Revision Guide Helper ---
+async function checkAndRenderRevisionGuide(q) {
+  // If no topic_id, do nothing
+  if (!q.topic_id) return;
+
+  const currentQIndex = currentQuestion; // Capture current index
+
+  try {
+    const { count, error } = await supabase
+      .from('revision_guides')
+      .select('*', { count: 'exact', head: true })
+      .eq('topic_id', q.topic_id);
+
+    if (error) {
+      console.error('Error checking revision guides:', error);
+      return;
+    }
+
+    // Ensure we are still on the same question
+    if (currentQuestion !== currentQIndex) return;
+
+    if (count > 0) {
+      const header = document.querySelector('.question-header');
+      if (header && !header.querySelector('.revision-guide-btn')) {
+        const btn = document.createElement('a');
+        btn.className = 'revision-guide-btn';
+        // Assuming study.html can handle topic_id or just general link for now
+        btn.href = `study.html?topic_id=${q.topic_id}`;
+        btn.target = '_blank';
+        btn.style.cssText = 'display: inline-flex; align-items: center; gap: 4px; margin-left: 0.8rem; padding: 4px 8px; background: #e3f2fd; color: #1565c0; border-radius: 4px; text-decoration: none; font-size: 0.85rem; font-weight: 500; border: 1px solid #90caf9; transition: all 0.2s;';
+        btn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+          </svg>
+          Revision Guide
+        `;
+        btn.onmouseover = () => btn.style.background = '#bbdefb';
+        btn.onmouseout = () => btn.style.background = '#e3f2fd';
+
+        // Insert after category or at the end
+        const categorySpan = header.querySelector('.question-category');
+        if (categorySpan) {
+          categorySpan.after(btn);
+        } else {
+          // If no category, append after flag button (or wherever fits)
+          const flagBtn = header.querySelector('.flag-btn');
+          if (flagBtn) {
+            flagBtn.after(btn);
+          } else {
+            header.appendChild(btn);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Unexpected error checking revision guides:', err);
+  }
 }
 
 // Render right panel with status squares

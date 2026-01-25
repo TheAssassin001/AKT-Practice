@@ -1,0 +1,213 @@
+        if (q.type) q.type = q.type.toLowerCase();
+
+        // Helper for safe JSON parsing
+        const safeParse = (val, fallback = []) => {
+          if (!val) return fallback;
+          if (typeof val !== 'string') return val;
+          // Simple check: Valid JSON collections start with { or [
+          const trimmed = val.trim();
+          if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+            // If it's not a JSON collection, return it as a string instead of trying to parse
+            return val;
+          }
+          try {
+            return JSON.parse(val);
+          } catch (e) {
+            // Final fallback: if it failed to parse but looks like it should have been JSON
+            console.warn(`Question ${idx}: Failed to parse JSON string: "${val.substring(0, 20)}..."`, e);
+            return val;
+          }
+        };
+
+        // 1. Handle potential nesting in 'stem' field (Assumption A)
+        if (q.type === 'emq' && q.stem) {
+          let stemData = q.stem;
+          if (typeof q.stem === 'string') {
+            stemData = safeParse(q.stem, null);
+          }
+
+          if (stemData && typeof stemData === 'object') {
+            q.theme = q.theme || stemData.theme;
+            q.options = q.options || stemData.options;
+            q.stems = q.stems || stemData.stems;
+          }
+        }
+
+        // 2. Normalize and Parse core fields
+        q.options = safeParse(q.options, []);
+        q.stems = safeParse(q.stems, []);
+        q.furtherReading = safeParse(q.furtherReading, []);
+
+        // Normalize correct_answer
+        if (typeof q.correct_answer === 'string') {
+          q.correct = safeParse(q.correct_answer, null);
+        } else {
+          q.correct = q.correct_answer !== undefined ? q.correct_answer : null;
+        }
+
+        // Numeric specific normalization
+        if (q.type === 'numeric') {
+          // Map to the expected property name
+          let rawCorrect = q.correct !== null ? q.correct : q.correct_answer;
+
+          if (typeof rawCorrect === 'object' && rawCorrect !== null) {
+            // Handle if answer is wrapped in an object { value: 20 } or { answer: 20 }
+            q.correctAnswer = parseFloat(rawCorrect.value || rawCorrect.answer || rawCorrect.correct || 0);
+          } else {
+            q.correctAnswer = parseFloat(rawCorrect) || 0;
+          }
+
+          q.tolerance = parseFloat(q.tolerance) || 0;
+        } else if (q.type === 'numeric' && q.tolerance) {
+          // Keep existing tolerance parsing just in case
+          q.tolerance = parseFloat(q.tolerance) || 0;
+        }
+
+        // MBA Specific normalization
+        if (q.type === 'mba') {
+          console.log(`MBA Question ${idx} - Before normalization:`, {
+            correct: q.correct,
+            correct_answer: q.correct_answer,
+            type: typeof q.correct,
+            isArray: Array.isArray(q.correct)
+          });
+
+          // Ensure correct is an array
+          if (!Array.isArray(q.correct)) {
+            if (typeof q.correct === 'string') {
+              // Try comma separation if not JSON
+              if (q.correct.includes(',')) {
+                q.correct = q.correct.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+              } else {
+                const parsed = parseInt(q.correct);
+                q.correct = isNaN(parsed) ? [] : [parsed];
+              }
+            } else if (typeof q.correct === 'number') {
+              q.correct = [q.correct];
+            } else {
+              q.correct = [];
+            }
+          }
+
+          console.log(`MBA Question ${idx} - After normalization:`, {
+            correct: q.correct,
+            length: q.correct.length
+          });
+
+          if (q.correct.length === 0) {
+            console.warn(`MBA Question ${idx} has no correct answers after normalization. Raw data:`, row);
+          }
+        }
+
+        // 3. Defensive checks (Assumption B)
+        if (q.type === 'emq') {
+          q.theme = q.theme || 'Clinical Case'; // Fallback instead of skipping
+          if (!Array.isArray(q.stems) || q.stems.length === 0) {
+            console.warn(`EMQ question ${idx} has no stems and will be skipped. Raw data:`, row);
+            q._skip = true;
+          }
+          if (!Array.isArray(q.options) || q.options.length === 0) {
+            console.warn(`EMQ question ${idx} has no options and will be skipped. Raw data:`, row);
+            q._skip = true;
+          }
+        }
+
+        if (q.type === 'sba' && !q.stem) {
+          console.warn(`SBA question ${idx} is missing a stem. Proceeding with caution.`);
+          q.stem = '(No clinical stem provided)';
+        }
+
+        // Ensure topic and explanation are strings
+        q.topic = q.topic || '';
+        q.explanation = q.explanation || '';
+
+        return q;
+      });
+
+      // Filter out skipped EMQs before rendering
+      const initialCount = questions_data.length;
+      allQuestions = questions_data.filter(q => !q._skip);
+      const skippedCount = initialCount - allQuestions.length;
+
+      if (skippedCount > 0) {
+        console.warn(`Skipped ${skippedCount} questions due to missing/invalid data.`);
+        showToast(`Loaded ${allQuestions.length} questions. ${skippedCount} skipped (invalid data).`);
+      }
+    }
+  } catch (err) {
+    console.error('Unexpected Supabase error:', err);
+    handleError('loadQuestionsFromSupabase', err, 'Unexpected error loading questions');
+    allQuestions = [];
+  }
+  questionsLoading = false;
+}
+
+// === FRONTEND EXAM LOGIC ===
+// All exam behaviour, scoring, navigation, and timed-out logic is owned by the frontend below.
+// Backend changes do NOT affect scoring rules or timed-out behaviour.
+
+// --- Global Keyboard Navigation ---
+function setupKeyboardNavigation() {
+  document.addEventListener('keydown', (e) => {
+    // Ignore if modal is open
+    if (document.getElementById('mode-modal') && document.getElementById('mode-modal').style.display === 'flex') return;
+    if (document.getElementById('lab-modal') && document.getElementById('lab-modal').style.display === 'block') return;
+
+    const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+    
+    // 1. Navigation (Arrows)
+    if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !isInput) {
+      // Prevent default scrolling
+      e.preventDefault();
+      
+      if (e.key === 'ArrowRight') {
+         if (currentQuestion < questions.length - 1) {
+           currentQuestion++;
+           saveQuizState();
+           renderQuestion();
+         }
+      } else if (e.key === 'ArrowLeft') {
+         if (currentQuestion > 0) {
+           currentQuestion--;
+           saveQuizState();
+           renderQuestion();
+         }
+      }
+      return;
+    }
+
+    // 2. Submit / Next (Enter)
+    if (e.key === 'Enter') {
+      // If we are on a button/input that handles enter naturally, let it be (unless it's our submit button)
+      // But we want to override default form submission if it's the main form
+      
+      if (testEnded) return;
+
+      const currentStatus = questionStates[currentQuestion]?.status;
+
+      if (currentStatus === 'not-attempted') {
+        // If focusing a specific input (like numeric or textarea), let natural submit happen if form handles it
+        // Or trigger the submit button click
+        const submitBtn = document.querySelector('.submit-btn');
+        if (submitBtn && !submitBtn.disabled) {
+           e.preventDefault();
+           submitBtn.click();
+        }
+      } else {
+        // Already answered -> Go to next
+        e.preventDefault();
+        const nextBtn = document.querySelector('.next-btn');
+        if (nextBtn) {
+          nextBtn.click();
+        } else if (currentQuestion < questions.length - 1) {
+          // Fallback if button isn't found for some reason
+          currentQuestion++;
+          saveQuizState();
+          renderQuestion();
+        }
+      }
+    }
+  });
+}
+
+async function initializeApp() {
