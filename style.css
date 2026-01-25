@@ -92,8 +92,9 @@ body {
     box-shadow: 0 2px 8px var(--shadow-color);
     z-index: 1;
     transition: background-color 0.3s ease;
-    max-width: 310px;
-    /* 10 squares × 22px + 9 gaps × 8px + padding = 220 + 72 + 24 = 316px */
+    width: 316px;
+    box-sizing: border-box;
+    /* 10 squares × 22px + 9 gaps × 8px + padding (0.75rem * 16 * 2 = 24px) = 220 + 72 + 24 = 316px */
 }
 
 /* Grid square styling */
@@ -172,6 +173,40 @@ body {
     font-size: 1.1rem;
     color: var(--accent-color);
     letter-spacing: 0.5px;
+}
+
+.nav-arrows {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+    /* Push to right */
+    align-items: center;
+}
+
+.nav-arrows button {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    color: #bdbdbd;
+    /* Faint gray */
+    cursor: pointer;
+    padding: 0 0.5rem;
+    line-height: 1;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-arrows button:hover {
+    color: var(--accent-color);
+    transform: scale(1.1);
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 4px;
+}
+
+.nav-arrows button:active {
+    transform: scale(0.95);
 }
 
 .question-theme {

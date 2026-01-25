@@ -86,6 +86,7 @@ let examDuration = 0;
 let timeLeft = null;
 let timerInterval = null;
 let reviewMode = false;
+let currentQuestionCleanup = null;
 
 // Standard Fisher-Yates shuffle
 function shuffleArray(array) {
@@ -238,8 +239,6 @@ async function loadQuestionsFromSupabase() {
         return q;
       });
 
-
-
       // Filter out skipped EMQs before rendering
       const initialCount = questions_data.length;
       allQuestions = questions_data.filter(q => !q._skip);
@@ -258,11 +257,79 @@ async function loadQuestionsFromSupabase() {
   questionsLoading = false;
 }
 
-
 // === FRONTEND EXAM LOGIC ===
 // All exam behaviour, scoring, navigation, and timed-out logic is owned by the frontend below.
 // Backend changes do NOT affect scoring rules or timed-out behaviour.
+
+// --- Global Keyboard Navigation ---
+function setupKeyboardNavigation() {
+  if (window.keyboardNavSetup) return; // Guard against double registration
+  window.keyboardNavSetup = true;
+
+  document.addEventListener('keydown', (e) => {
+    // Ignore if modal is open
+    if (document.getElementById('mode-modal') && document.getElementById('mode-modal').style.display === 'flex') return;
+    if (document.getElementById('lab-modal') && document.getElementById('lab-modal').style.display === 'block') return;
+
+    const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+
+    // 1. Navigation (Arrows)
+    if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && !isInput) {
+      // Prevent default scrolling
+      e.preventDefault();
+
+      if (e.key === 'ArrowRight') {
+        if (currentQuestion < questions.length - 1) {
+          currentQuestion++;
+          saveQuizState();
+          renderQuestion();
+        }
+      } else if (e.key === 'ArrowLeft') {
+        if (currentQuestion > 0) {
+          currentQuestion--;
+          saveQuizState();
+          renderQuestion();
+        }
+      }
+      return;
+    }
+
+    // 2. Submit / Next (Enter)
+    if (e.key === 'Enter') {
+      // If we are on a button/input that handles enter naturally, let it be (unless it's our submit button)
+      // But we want to override default form submission if it's the main form
+
+      if (testEnded) return;
+
+      const currentStatus = questionStates[currentQuestion]?.status;
+
+      if (currentStatus === 'not-attempted') {
+        // If focusing a specific input (like numeric or textarea), let natural submit happen if form handles it
+        // Or trigger the submit button click
+        const submitBtn = document.querySelector('.submit-btn');
+        if (submitBtn && !submitBtn.disabled) {
+          e.preventDefault();
+          submitBtn.click();
+        }
+      } else {
+        // Already answered -> Go to next
+        e.preventDefault();
+        const nextBtn = document.querySelector('.next-btn');
+        if (nextBtn) {
+          nextBtn.click();
+        } else if (currentQuestion < questions.length - 1) {
+          // Fallback if button isn't found for some reason
+          currentQuestion++;
+          saveQuizState();
+          renderQuestion();
+        }
+      }
+    }
+  });
+}
+
 async function initializeApp() {
+  setupKeyboardNavigation();
   // Show a loading indicator in the main section
   const section = document.getElementById('question-section');
   if (section) {
@@ -356,6 +423,9 @@ async function initializeApp() {
       renderQuestion();
     }
   }
+
+  // Setup global keyboard navigation
+  setupKeyboardNavigation();
 
   setupLabModal();
   setupExitBtn();
@@ -737,6 +807,12 @@ function selectMockExamQuestions(allQuestions, examId) {
 
 // --- Question rendering flow --- 
 function renderQuestion() {
+  // Cleanup any previous question handlers
+  if (currentQuestionCleanup) {
+    currentQuestionCleanup();
+    currentQuestionCleanup = null;
+  }
+
   // If no questions, show a friendly message and return
   if (!questions || questions.length === 0) {
     const section = document.getElementById('question-section');
@@ -816,6 +892,11 @@ function renderQuestion() {
       ${flagBtn}
       ${categoryName ? `<span class="question-category" style="color: #1565c0; font-weight: bold; font-size: 1rem; margin-left: 0.8rem; border-left: 2px solid #e0e0e0; padding-left: 0.8rem;">${categoryName}</span>` : ''}
       ${codeText ? `<span class="question-codes" style="color: #1565c0; font-size: 0.85rem; margin-left: 0.8rem;">${codeText}</span>` : ''}
+      
+      <div class="nav-arrows">
+          <button id="nav-prev" title="Previous Question (Left Arrow)" aria-label="Previous Question">❮</button>
+          <button id="nav-next" title="Next Question (Right Arrow)" aria-label="Next Question">❯</button>
+      </div>
     </div>
   `;
 
@@ -1203,6 +1284,32 @@ function renderQuestion() {
     section.innerHTML = '<div class="error-message">Unknown question type. Please contact support.</div>';
     console.error('Unknown question type:', q.type, q);
   }
+  // Attach Navigation Arrow Handlers
+  const prevBtn = document.getElementById('nav-prev');
+  const nextBtn = document.getElementById('nav-next');
+
+  if (prevBtn) {
+    prevBtn.onclick = () => {
+      if (currentQuestion > 0) {
+        currentQuestion--;
+        saveQuizState();
+        renderQuestion();
+      }
+    };
+    if (currentQuestion === 0) prevBtn.style.opacity = '0.3'; // Visual disable
+  }
+
+  if (nextBtn) {
+    nextBtn.onclick = () => {
+      if (currentQuestion < questions.length - 1) {
+        currentQuestion++;
+        saveQuizState();
+        renderQuestion();
+      }
+    };
+    if (currentQuestion === questions.length - 1) nextBtn.style.opacity = '0.3'; // Visual disable
+  }
+
   // Flag button handler
   document.getElementById('flag-btn').onclick = function (e) {
     e.preventDefault();
@@ -1722,16 +1829,18 @@ function attachSbaHandlers(q) {
       }
     }
     // Enter to submit
-    if (e.key === 'Enter' && form.answer && form.answer.value) {
-      e.preventDefault();
-      form.requestSubmit();
-    }
+    // GLOBAL HANDLER NOW TAKES CARE OF THIS
+    // if (e.key === 'Enter' && form.answer && form.answer.value) {
+    //   e.preventDefault();
+    //   form.requestSubmit();
+    // }
   };
   document.addEventListener('keydown', keyHandler);
 
   // Cleanup
   const cleanup = () => document.removeEventListener('keydown', keyHandler);
-  form.addEventListener('submit', () => setTimeout(cleanup, 100), { once: true });
+  currentQuestionCleanup = cleanup;
+  form.addEventListener('submit', () => { setTimeout(cleanup, 100); currentQuestionCleanup = null; }, { once: true });
 }
 
 
@@ -2007,16 +2116,18 @@ function attachMbaHandlers(q) {
     }
 
     // Enter to submit if correct count selected
-    if (e.key === 'Enter' && !submitBtn.disabled) {
-      e.preventDefault();
-      form.requestSubmit();
-    }
+    // GLOBAL HANDLER NOW TAKES CARE OF THIS
+    // if (e.key === 'Enter' && !submitBtn.disabled) {
+    //   e.preventDefault();
+    //   form.requestSubmit();
+    // }
   };
   document.addEventListener('keydown', keyHandler);
 
   // Cleanup
   const cleanup = () => document.removeEventListener('keydown', keyHandler);
-  form.addEventListener('submit', () => setTimeout(cleanup, 100), { once: true });
+  currentQuestionCleanup = cleanup;
+  form.addEventListener('submit', () => { setTimeout(cleanup, 100); currentQuestionCleanup = null; }, { once: true });
 }
 
 function startTest() {
