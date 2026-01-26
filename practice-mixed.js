@@ -1961,8 +1961,18 @@ function renderExplanation({
   correctText,
   explanation,
   furtherReading,
-  topicBtn
+  topicBtn,
+  revisionGuides // Add revisionGuides param
 }) {
+  // Generate revision guides HTML immediately if data exists
+  const guidesHtml = (revisionGuides && revisionGuides.length > 0)
+    ? revisionGuides.map(g => `
+        <a href="study.html?topic_id=${g.topic_id}" target="_blank" class="revision-guide-btn" 
+           style="display: inline-block; margin: 4px 8px 4px 0; padding: 6px 12px; background: #e8f5e9; color: #2e7d32; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 0.9em; border: 1px solid #c8e6c9;">
+           📖 ${g.title}
+        </a>`).join('')
+    : '<!-- Revision guides will be injected here if fetched later -->';
+
   return `
     <span class="${isCorrect ? 'correct' : 'incorrect'}">${isCorrect ? 'Correct' : 'Incorrect'}</span>
     <div class="correct-answer"><strong>Correct answer:</strong> ${correctLabel}. ${correctText}</div>
@@ -1975,7 +1985,7 @@ function renderExplanation({
     </div>
     ${topicBtn ? `<div class="topic-btn-row"><a href="${topicBtn.url}" target="_blank" rel="noopener" class="topic-btn">${topicBtn.text}</a></div>` : ''}
     <div id="revision-guides-section-${new Date().getTime()}" class="revision-guides-section" style="margin-top: 10px;">
-      <!-- Revision guides will be injected here -->
+      ${guidesHtml}
     </div>
   `;
 }
@@ -2024,12 +2034,13 @@ function attachSbaHandlers(q) {
       correctText: (correctIdx >= 0 && (questionStates[currentQuestion].shuffledOptions || q.options)[correctIdx]) || 'Unknown',
       explanation: q.explanation,
       furtherReading: q.furtherReading,
-      topicBtn: q.topicBtn || (q.topic ? { text: q.topic, url: '#' } : null)
+      topicBtn: q.topicBtn || (q.topic ? { text: q.topic, url: '#' } : null),
+      revisionGuides: q.revisionGuides // Pass cached guides
     });
     explanationBox.style.display = 'block';
     Array.from(fieldset.querySelectorAll('input[type=radio]')).forEach((el, idx) => {
       el.disabled = true;
-      const label = fieldset.querySelector(`label[for="option${idx + 1}"]`);
+      const label = fieldset.querySelector(`label[for= "option${idx + 1}"]`);
       if (parseInt(selected) === idx && isCorrect) {
         label.classList.add('option-correct');
       } else if (parseInt(selected) === idx && !isCorrect) {
@@ -2184,7 +2195,8 @@ function attachEmqDropdownHandlers(q) {
         correctText: (questionStates[currentQuestion].shuffledOptions || q.options)[correctIdx],
         explanation: stemObj.explanation,
         furtherReading: q.furtherReading,
-        topicBtn: q.topicBtn || (q.topic ? { text: q.topic, url: '#' } : null)
+        topicBtn: q.topicBtn || (q.topic ? { text: q.topic, url: '#' } : null),
+        revisionGuides: q.revisionGuides // Pass cached guides
       }) + extraNote + '<hr style="margin:1.5rem 0;">';
     });
     // Button is disabled until all answered, so we don't need the check here in theory,
@@ -2336,7 +2348,8 @@ function attachMbaHandlers(q) {
       correctText: correctTexts,
       explanation: q.explanation,
       furtherReading: q.furtherReading,
-      topicBtn: q.topicBtn || (q.topic ? { text: q.topic, url: '#' } : null)
+      topicBtn: q.topicBtn || (q.topic ? { text: q.topic, url: '#' } : null),
+      revisionGuides: q.revisionGuides // Pass cached guides
     });
 
     if (isPartial) {
