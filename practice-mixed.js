@@ -1572,8 +1572,8 @@ async function checkAndRenderRevisionGuide(q) {
 
   try {
     const { count, error } = await supabase
-      .from('revision_guides')
-      .select('*', { count: 'exact', head: true })
+      .from('topic_revision_guides')
+      .select('id', { count: 'exact', head: true })
       .eq('topic_id', q.topic_id);
 
     if (error) {

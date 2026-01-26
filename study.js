@@ -32,15 +32,21 @@ async function loadRevisionGuide(topicId) {
     dynamicContent.innerHTML = '<div class="loading-container">Loading revision guide...</div>';
 
     try {
+        // Fetch linked guides via junction table
         const { data, error } = await supabase
-            .from('revision_guides')
-            .select('*')
-            .eq('topic_id', topicId)
-            .single();
+            .from('topic_revision_guides')
+            .select('revision_guides (*)')
+            .eq('topic_id', topicId);
 
         if (error) throw error;
 
-        if (!data) {
+        // Flatten the result (array of objects containing revision_guides)
+        // Filter out any null entries just in case
+        const guides = (data || [])
+            .map(row => row.revision_guides)
+            .filter(g => g !== null);
+
+        if (!guides || guides.length === 0) {
             dynamicContent.innerHTML = `
                 <div class="error-message">
                     <h3>Guide Not Found</h3>
@@ -50,7 +56,13 @@ async function loadRevisionGuide(topicId) {
             return;
         }
 
-        renderGuide(data, dynamicContent);
+        if (guides.length === 1) {
+            // Single guide: Render as before
+            renderGuide(guides[0], dynamicContent);
+        } else {
+            // Multiple guides: Render a list selection
+            renderGuideList(guides, dynamicContent);
+        }
 
     } catch (err) {
         console.error('Error loading guide:', err);
@@ -61,6 +73,35 @@ async function loadRevisionGuide(topicId) {
                 <a href="study.html" class="back-link">&larr; Back to Study Resources</a>
             </div>`;
     }
+}
+
+function renderGuideList(guides, container) {
+    container.innerHTML = `
+        <div class="guide-header">
+            <a href="study.html" class="back-link">&larr; Back to Study Resources</a>
+            <h1 class="guide-title">Select a Guide</h1>
+            <p style="color: #666; margin-top: 0.5rem;">Multiple guides found for this topic.</p>
+        </div>
+        <div class="guides-grid" style="display: grid; gap: 1rem; margin-top: 2rem;">
+            ${guides.map((guide, idx) => `
+                <div class="resource-card guide-choice" 
+                     data-idx="${idx}"
+                     style="cursor: pointer; padding: 1.5rem; border: 1px solid #e0e0e0; border-radius: 8px; transition: all 0.2s;">
+                    <h3 style="margin: 0 0 0.5rem 0; color: #1565c0;">${guide.title || 'Revision Guide ' + (idx + 1)}</h3>
+                    <p style="margin: 0; color: #555; font-size: 0.95rem;">${guide.summary || 'Click to read full guide.'}</p>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    // Add click handlers to render specific guide
+    container.querySelectorAll('.guide-choice').forEach(card => {
+        card.onclick = () => {
+            const idx = card.dataset.idx;
+            renderGuide(guides[idx], container);
+            window.scrollTo(0, 0);
+        };
+    });
 }
 
 function renderGuide(data, container) {
