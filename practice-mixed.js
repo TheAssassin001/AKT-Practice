@@ -155,7 +155,31 @@ async function loadQuestionsFromSupabase() {
 
         // Normalize correct_answer
         if (typeof q.correct_answer === 'string') {
-          q.correct = safeParse(q.correct_answer, null);
+          const trimmed = q.correct_answer.trim();
+          // Case 1: "0", "1", "2" (Numeric string)
+          if (/^\d+$/.test(trimmed)) {
+            q.correct = parseInt(trimmed, 10);
+          }
+          // Case 2: "A", "B", "C" (Letter)
+          else if (/^[A-Ei]$/i.test(trimmed)) {
+            // 'i' might be used for latin? mostly A-E
+            const code = trimmed.toUpperCase().charCodeAt(0);
+            q.correct = code - 65; // A=0, B=1...
+          }
+          // Case 3: JSON Array/Object (old logic)
+          else {
+            q.correct = safeParse(q.correct_answer, null);
+          }
+
+          // Case 4: Text Match (Fallback)
+          // If q.correct is still null/invalid, try to match text against options
+          if ((q.correct === null || typeof q.correct !== 'number') && Array.isArray(q.options)) {
+            const lowerCorrect = trimmed.toLowerCase();
+            const matchIdx = q.options.findIndex(opt => opt.trim().toLowerCase() === lowerCorrect);
+            if (matchIdx !== -1) {
+              q.correct = matchIdx;
+            }
+          }
         } else {
           q.correct = q.correct_answer !== undefined ? q.correct_answer : null;
         }
@@ -1571,10 +1595,22 @@ async function checkAndRenderRevisionGuide(q) {
   const currentQIndex = currentQuestion; // Capture current index
 
   try {
-    const { count, error } = await supabase
+    let { count, error } = await supabase
       .from('topic_revision_guides')
       .select('id', { count: 'exact', head: true })
       .eq('topic_id', q.topic_id);
+
+    // Fallback: Check old table if new table has no matches
+    if (!error && count === 0) {
+      const directRes = await supabase
+        .from('revision_guides')
+        .select('id', { count: 'exact', head: true })
+        .eq('topic_id', q.topic_id);
+
+      if (!directRes.error) {
+        count = directRes.count;
+      }
+    }
 
     if (error) {
       console.error('Error checking revision guides:', error);
@@ -1919,8 +1955,8 @@ function attachSbaHandlers(q) {
 
     explanationBox.innerHTML = renderExplanation({
       isCorrect,
-      correctLabel: String.fromCharCode(65 + correctIdx),
-      correctText: (questionStates[currentQuestion].shuffledOptions || q.options)[correctIdx],
+      correctLabel: correctIdx >= 0 ? String.fromCharCode(65 + correctIdx) : '?',
+      correctText: (correctIdx >= 0 && (questionStates[currentQuestion].shuffledOptions || q.options)[correctIdx]) || 'Unknown',
       explanation: q.explanation,
       furtherReading: q.furtherReading,
       topicBtn: q.topicBtn || (q.topic ? { text: q.topic, url: '#' } : null)

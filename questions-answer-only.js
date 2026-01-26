@@ -36,11 +36,65 @@ async function loadQuestions(topicId) {
             return;
         }
 
-        container.innerHTML = questions.map((q, index) => renderQuestionBlock(q, index)).join('');
+        container.innerHTML = questions.map((q, index) => {
+            normalizeQuestion(q);
+            return renderQuestionBlock(q, index);
+        }).join('');
 
     } catch (err) {
         console.error('Error loading questions:', err);
         container.innerHTML = '<div class="error-message">Error loading questions. Please try again later.</div>';
+    }
+}
+
+// --- Helpers ---
+
+function safeParse(val, fallback = []) {
+    if (!val) return fallback;
+    if (typeof val !== 'string') return val;
+    const trimmed = val.trim();
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return val;
+    try {
+        return JSON.parse(val);
+    } catch (e) {
+        return val;
+    }
+}
+
+function normalizeQuestion(q) {
+    // Parse JSON fields
+    q.options = safeParse(q.options, []);
+    q.stems = safeParse(q.stems, []);
+
+    // Normalize correct_answer
+    if (typeof q.correct_answer === 'string') {
+        const trimmed = q.correct_answer.trim();
+
+        // Case 1: Numeric string ("0", "1")
+        if (/^\d+$/.test(trimmed)) {
+            q.correct = parseInt(trimmed, 10);
+        }
+        // Case 2: Letter ("A", "B")
+        else if (/^[A-Ei]$/i.test(trimmed)) {
+            const code = trimmed.toUpperCase().charCodeAt(0);
+            q.correct = code - 65;
+        }
+        // Case 3: Try parsing as JSON (old logic)
+        else {
+            q.correct = safeParse(q.correct_answer, null);
+        }
+
+        // Case 4: Smart Text Match Fallback
+        // If q.correct is still invalid, try to match text against options
+        if ((q.correct === null || typeof q.correct !== 'number') && Array.isArray(q.options)) {
+            const lowerCorrect = trimmed.toLowerCase();
+            const matchIdx = q.options.findIndex(opt => opt.trim().toLowerCase() === lowerCorrect);
+            if (matchIdx !== -1) {
+                q.correct = matchIdx;
+            }
+        }
+    } else {
+        q.correct = q.correct_answer !== undefined ? q.correct_answer : null;
     }
 }
 
@@ -53,7 +107,13 @@ function renderQuestionBlock(q, index) {
         optionsHtml = `<div class="q-options">
             ${q.options.map((opt, i) => `<div class="q-option">${String.fromCharCode(65 + i)}. ${opt}</div>`).join('')}
         </div>`;
-        correctText = `${String.fromCharCode(65 + q.correct)}. ${q.options[q.correct]}`;
+
+        const validCorrect = (typeof q.correct === 'number' && q.correct >= 0 && q.correct < q.options.length);
+        if (validCorrect) {
+            correctText = `${String.fromCharCode(65 + q.correct)}. ${q.options[q.correct]}`;
+        } else {
+            correctText = 'Unknown (Data Error)';
+        }
     } else if (q.type === 'emq' && q.options) {
         optionsHtml = `<div class="q-options">
             <strong>Options:</strong><br>
