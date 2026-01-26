@@ -33,10 +33,25 @@ async function loadRevisionGuide(topicId) {
 
     try {
         // Fetch linked guides via junction table
-        const { data, error } = await supabase
+        let { data, error } = await supabase
             .from('topic_revision_guides')
             .select('revision_guides (*)')
             .eq('topic_id', topicId);
+
+        // Fallback: If no junction data, try direct fetch
+        if (!error && (!data || data.length === 0)) {
+            const directRes = await supabase
+                .from('revision_guides')
+                .select('*')
+                .eq('topic_id', topicId);
+
+            if (!directRes.error && directRes.data && directRes.data.length > 0) {
+                // Format to match expected structure or just use directly
+                // We need to normalize for the next step, so let's wrap it to look like junction result
+                // OR just handle it in the normalization step below
+                data = directRes.data.map(g => ({ revision_guides: g }));
+            }
+        }
 
         if (error) throw error;
 
