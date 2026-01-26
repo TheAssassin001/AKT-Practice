@@ -13,7 +13,7 @@
 // === CONSTANTS ===
 const SECONDS_PER_QUESTION = 60;
 const AUTO_SAVE_INTERVAL = 5; // Save every 5 seconds during exam
-const STORAGE_KEY = 'quizStateV2';
+const STORAGE_KEY = 'quizStateV3';
 const WEAK_TOPICS_KEY = 'weakTopics';
 const FLAGGED_QUESTIONS_KEY = 'akt-flagged-questions';
 const DISTINCTION_THRESHOLD = 0.8;
@@ -87,6 +87,7 @@ let timeLeft = null;
 let timerInterval = null;
 let reviewMode = false;
 let currentQuestionCleanup = null;
+let quizCleared = false; // Lock flag to prevent re-saving after clear
 
 // Standard Fisher-Yates shuffle
 function shuffleArray(array) {
@@ -360,8 +361,10 @@ async function initializeApp() {
     section.innerHTML = '<div class="loading-message" style="text-align:center; padding: 2rem; color: #666; font-style: italic;">Loading clinical questions from Supabase...</div>';
   }
 
-  // TEMPORARY: Clear old quiz state after schema change (Jan 2026)
+  // TEMPORARY: Clear old quiz state after schema change
   localStorage.removeItem("quizStateV1");
+  localStorage.removeItem("quizStateV2"); // Clear V2 after upgrade
+
 
   questionsLoading = true;
   await loadQuestionsFromSupabase();
@@ -549,6 +552,8 @@ window.addEventListener('DOMContentLoaded', initializeApp);
 let saveQuizStateTimeout = null;
 
 function saveQuizState(immediate = false) {
+  if (quizCleared) return; // Block saving if quiz was explicitly cleared
+  if (testEnded) return; // Block saving if test is already ended (redundant safety)
   // TODO: Store quiz state per user after authentication is implemented.
   const doSave = () => {
     const params = new URLSearchParams(window.location.search);
@@ -596,6 +601,7 @@ function loadQuizState(requiredType = null) {
   try {
     const state = JSON.parse(raw);
     if (!state || !Array.isArray(state.questionStates)) return false;
+    if (state.testEnded) return false; // Ignore finished tests (Start Fresh)
 
     // Check if category matches (if we're on a category page)
     const params = new URLSearchParams(window.location.search);
@@ -671,6 +677,10 @@ function loadQuizState(requiredType = null) {
   }
 }
 function clearQuizState() {
+  quizCleared = true; // Engage lock
+  // Prevent any pending save from overwriting the clear
+  if (saveQuizStateTimeout) clearTimeout(saveQuizStateTimeout);
+
   // TODO: Clear user-specific quiz state after authentication is implemented.
   localStorage.removeItem(STORAGE_KEY);
 }
@@ -1573,8 +1583,14 @@ function renderQuestion() {
           saveQuizState(); // Save new position
           renderQuestion();
         } else {
-          renderEndScreen();
+          // 1. Stop timer immediately to prevent auto-saves
+          if (timerInterval) clearInterval(timerInterval);
+          // 2. Set flag to block any pending saves
+          testEnded = true;
+          // 3. Clear storage
           clearQuizState();
+          // 4. Render UI
+          renderEndScreen();
         }
       };
       form.appendChild(nextBtn);
@@ -1589,6 +1605,52 @@ function renderQuestion() {
 
 // --- Revision Guide Helper ---
 async function checkAndRenderRevisionGuide(q) {
+  // --- MOVED TO FURTHER READING (New Logic) ---
+  if (!q.topic_id) return;
+
+  try {
+    const currentQIndex = currentQuestion;
+
+    // 1. Fetch
+    let { data, error } = await supabase
+      .from('topic_revision_guides')
+      .select('revision_guides(title)')
+      .eq('topic_id', q.topic_id);
+
+    let guides = [];
+    if (!error && data) {
+      guides = data.map(i => ({ title: i.revision_guides?.title || 'Revision Guide', topic_id: q.topic_id }));
+    }
+
+    // 2. Fallback
+    if (!data || data.length === 0) {
+      const dr = await supabase.from('revision_guides').select('title').eq('topic_id', q.topic_id);
+      if (dr.data) guides = dr.data.map(g => ({ title: g.title || 'Revision Guide', topic_id: q.topic_id }));
+    }
+
+    // Capture
+    q.revisionGuides = guides;
+
+    // 3. Render
+    if (currentQuestion !== currentQIndex) return;
+
+    const renderButtons = () => {
+      const container = document.querySelector('.revision-guides-section');
+      if (container && guides.length > 0) {
+        container.innerHTML = guides.map(g => `
+                <a href="study.html?topic_id=${g.topic_id}" target="_blank" class="revision-guide-btn" 
+                   style="display: inline-block; margin: 4px 8px 4px 0; padding: 6px 12px; background: #e8f5e9; color: #2e7d32; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 0.9em; border: 1px solid #c8e6c9;">
+                   📖 ${g.title}
+                </a>
+            `).join('');
+      }
+    };
+    renderButtons();
+  } catch (e) { console.error(e); }
+
+  // DISABLE OLD LOGIC
+  return;
+
   // If no topic_id, do nothing
   if (!q.topic_id) return;
 
@@ -1912,6 +1974,9 @@ function renderExplanation({
       </ul>
     </div>
     ${topicBtn ? `<div class="topic-btn-row"><a href="${topicBtn.url}" target="_blank" rel="noopener" class="topic-btn">${topicBtn.text}</a></div>` : ''}
+    <div id="revision-guides-section-${new Date().getTime()}" class="revision-guides-section" style="margin-top: 10px;">
+      <!-- Revision guides will be injected here -->
+    </div>
   `;
 }
 
@@ -2392,6 +2457,7 @@ function startTest() {
   totalPossible = 0;
   currentQuestion = 0;
   testEnded = false;
+  // quizCleared reset moved to end of function
   testEnded = false;
 
   // Check for study mode again to ensure reviewMode is set correctly
@@ -2443,8 +2509,6 @@ function startTest() {
 
     return state;
   });
-
-  clearQuizState();
 
   // Clear any loading/error messages before rendering
   const section = document.getElementById('question-section');
