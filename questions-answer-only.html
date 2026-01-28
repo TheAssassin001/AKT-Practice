@@ -46,6 +46,39 @@
         .q-option {
             margin-bottom: 0.5rem;
             color: #555;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .q-option:hover {
+            background-color: #f5f5f5;
+            border-color: #e0e0e0;
+        }
+
+        .q-option.selected {
+            background-color: #e3f2fd;
+            border-color: #2196f3;
+            color: #0d47a1;
+        }
+
+        .q-option.correct {
+            background-color: #e8f5e9;
+            border-color: #4caf50;
+            color: #1b5e20;
+        }
+
+        .q-option.wrong {
+            background-color: #ffebee;
+            border-color: #f44336;
+            color: #b71c1c;
+        }
+
+        .q-option.disabled {
+            pointer-events: none;
+            opacity: 0.7;
         }
 
         .correct-answer-box {

@@ -2,14 +2,74 @@ import { supabase } from './supabase.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
+    const guideId = params.get('guide_id');
     const topicId = params.get('topic_id');
 
-    if (topicId) {
+    if (guideId) {
+        // Direct guide navigation - load specific guide by ID
+        await loadSpecificGuide(guideId);
+    } else if (topicId) {
+        // Topic navigation - may show multiple guides
         await loadRevisionGuide(topicId);
     } else {
+        // Default - show all guides
         await loadAllGuides();
     }
 });
+
+async function loadSpecificGuide(guideId) {
+    const staticContent = document.getElementById('static-content');
+    const dynamicContent = document.getElementById('dynamic-content');
+    const pageTitle = document.querySelector('h2');
+    const pageDesc = document.querySelector('section > p');
+
+    // Safe toggle helper
+    const toggleView = (showDynamic) => {
+        if (staticContent) staticContent.style.display = showDynamic ? 'none' : 'block';
+        if (dynamicContent) dynamicContent.style.display = showDynamic ? 'block' : 'none';
+        if (pageTitle) pageTitle.style.display = showDynamic ? 'none' : 'block';
+        if (pageDesc) pageDesc.style.display = showDynamic ? 'none' : 'block';
+    };
+
+    toggleView(true);
+
+    if (!dynamicContent) return;
+
+    dynamicContent.innerHTML = '<div class="loading-container">Loading revision guide...</div>';
+
+    try {
+        // Fetch specific guide by ID
+        const { data, error } = await supabase
+            .from('revision_guides')
+            .select('*')
+            .eq('id', guideId)
+            .single();
+
+        if (error) throw error;
+
+        if (!data) {
+            dynamicContent.innerHTML = `
+                <div class="error-message">
+                    <h3>Guide Not Found</h3>
+                    <p>Sorry, we couldn't find the requested revision guide.</p>
+                    <a href="study.html" class="back-link">&larr; Back to Study Resources</a>
+                </div>`;
+            return;
+        }
+
+        renderGuide(data, dynamicContent);
+
+    } catch (err) {
+        console.error('Error loading specific guide:', err);
+        dynamicContent.innerHTML = `
+            <div class="error-message">
+                <h3>Error Loading Guide</h3>
+                <p>Unable to load content. Please try again later.</p>
+                <a href="study.html" class="back-link">&larr; Back to Study Resources</a>
+            </div>`;
+    }
+}
+
 
 async function loadRevisionGuide(topicId) {
     const staticContent = document.getElementById('static-content');

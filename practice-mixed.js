@@ -39,9 +39,11 @@ async function reloadQuestions() {
   }
 
   // Re-initialize state if new questions are added or order changes
+  const storedFlags = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY) || '{}');
+
   questionStates = questions.map(q => ({
     status: 'not-attempted',
-    flagged: false,
+    flagged: !!storedFlags[String(q.id)], // Sync with persistent flags
     answer:
       q.type === 'sba' ? null :
         q.type === 'emq' ? (q.stems ? Array(q.stems.length).fill(null) : []) :
@@ -418,9 +420,9 @@ async function initializeApp() {
 
     if (topicParam) {
       selectedType = 'mixed';
-      quizMode = 'exam';
+      quizMode = 'practice'; // Changed from 'exam' to 'practice' - no timer for category practice
       startTest();
-      startExamTimer();
+      // Timer removed - only mock exams should have timers
     } else if (topicIdParam) { // NEW Check
       selectedType = 'mixed';
       quizMode = 'practice'; // Ensure practice mode for study
@@ -493,8 +495,10 @@ function setupExitBtn() {
       if (modeParam === 'mock') {
         window.location.href = 'mocks.html';
       } else if (topicParam) {
-        window.location.href = `categories.html${selectedType ? '?type=' + selectedType : ''}`;
-      } else if (selectedType === 'sba' || selectedType === 'emq') {
+        // Fix: Don't pass 'mixed' as type to categories.html
+        const typeQuery = (selectedType && selectedType !== 'mixed') ? `?type=${selectedType}` : '';
+        window.location.href = `categories.html${typeQuery}`;
+      } else if (selectedType === 'sba' || selectedType === 'emq' || selectedType === 'mba') {
         window.location.href = `categories.html?type=${selectedType}`;
       } else {
         window.location.href = 'practice.html';
@@ -661,6 +665,15 @@ function loadQuizState(requiredType = null) {
       clearQuizState();
       return false;
     }
+
+    // Sync restoration with persistent flags (in case changed in another tab/session)
+    const storedFlags = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY) || '{}');
+    state.questionStates.forEach((qs, i) => {
+      const qId = questions[i]?.id;
+      if (qId) {
+        qs.flagged = !!storedFlags[String(qId)];
+      }
+    });
 
     quizMode = state.quizMode;
     questionStates = state.questionStates;
@@ -1327,8 +1340,8 @@ function renderQuestion() {
         <fieldset id="mba-fieldset">
           <legend>${q.stem}</legend>
           <div class="mba-instruction" style="background: #e3f2fd; padding: 0.8rem 1rem; border-radius: 6px; margin-bottom: 1rem; color: #1565c0; font-weight: 500;">
-            Select ${requiredCount} answer${requiredCount !== 1 ? 's' : ''} (minimum 2 to submit)
-            <span id="mba-counter" style="float: right; font-weight: 700;">0 / ${requiredCount}</span>
+            Select all correct answers
+            <span id="mba-counter" style="float: right; font-weight: 700;">0 selected</span>
           </div>
           ${q.options.map((opt, i) => {
       const isChecked = saved.includes(i);
@@ -1341,7 +1354,7 @@ function renderQuestion() {
         </fieldset>
         
         <button type="submit" class="submit-btn" aria-label="Submit your answers" disabled>Submit</button>
-        <p style="font-size: 0.8rem; color: #999; text-align: center; margin-top: 0.5rem;">Tip: Select at least 2 options to enable submit (${requiredCount} needed for full credit)</p>
+        <p style="font-size: 0.8rem; color: #999; text-align: center; margin-top: 0.5rem;">Tip: Select at least 2 options to enable submit</p>
       </form>
       <div id="explanation" class="explanation-box" style="display:none;"></div>
     `;
@@ -1456,14 +1469,16 @@ function renderQuestion() {
   }
 
   // Flag button handler
+  // Flag button handler
   document.getElementById('flag-btn').onclick = function (e) {
     e.preventDefault();
-    questionStates[currentQuestion].flagged = !questionStates[currentQuestion].flagged;
+    const currentState = questionStates[currentQuestion];
+    currentState.flagged = !currentState.flagged;
 
     // Save to persistent flagged questions storage
-    const questionId = questions[currentQuestion]?.id;
+    const questionId = String(questions[currentQuestion]?.id); // Force string key
 
-    if (!questionId || questionId === 'NaN') {
+    if (!questionId || questionId === 'undefined' || questionId === 'null') {
       console.warn('Attempted to flag a question with an invalid ID:', questionId);
       saveQuizState();
       renderQuestion();
@@ -1472,15 +1487,17 @@ function renderQuestion() {
 
     const flaggedData = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY) || '{}');
 
-    if (questionStates[currentQuestion].flagged) {
+    if (currentState.flagged) {
       // Add to flagged questions
       flaggedData[questionId] = {
-        status: questionStates[currentQuestion].status || 'not-attempted',
+        status: currentState.status || 'not-attempted',
         flaggedAt: new Date().toISOString()
       };
     } else {
       // Remove from flagged questions
-      delete flaggedData[questionId];
+      if (flaggedData[questionId]) {
+        delete flaggedData[questionId];
+      }
     }
 
     localStorage.setItem(FLAGGED_QUESTIONS_KEY, JSON.stringify(flaggedData));
@@ -1610,43 +1627,81 @@ async function checkAndRenderRevisionGuide(q) {
 
   try {
     const currentQIndex = currentQuestion;
+    // Safe init
+    q.revisionGuides = [];
 
-    // 1. Fetch
-    let { data, error } = await supabase
+    console.log(`[RevisionGuide] Checking topic_id: ${q.topic_id}`);
+
+    // 1. Fetch via junction table (include id for direct linking)
+    const { data, error } = await supabase
       .from('topic_revision_guides')
-      .select('revision_guides(title)')
+      .select('revision_guides(id, title)')
       .eq('topic_id', q.topic_id);
+
+    if (error) console.error('[RevisionGuide] Junction fetch error:', error);
+    if (data) console.log(`[RevisionGuide] Junction found: ${data.length} items`);
 
     let guides = [];
     if (!error && data) {
-      guides = data.map(i => ({ title: i.revision_guides?.title || 'Revision Guide', topic_id: q.topic_id }));
+      guides = data.map(i => ({
+        id: i.revision_guides?.id,
+        title: i.revision_guides?.title || 'Revision Guide',
+        topic_id: q.topic_id
+      }));
     }
 
-    // 2. Fallback
-    if (!data || data.length === 0) {
-      const dr = await supabase.from('revision_guides').select('title').eq('topic_id', q.topic_id);
-      if (dr.data) guides = dr.data.map(g => ({ title: g.title || 'Revision Guide', topic_id: q.topic_id }));
+    // 2. Fallback: Fetch directly if junction empty
+    // NOTE: This handles the 1-to-1 case (e.g. topic_id mismatch or direct mapping)
+    if (!guides || guides.length === 0) {
+      console.log('[RevisionGuide] Junction empty, trying 1-to-1 fallback...');
+      // We query based on topic_id column in revision_guides table (include id)
+      const dr = await supabase.from('revision_guides').select('id, title').eq('topic_id', q.topic_id);
+
+      if (dr.error) console.error('[RevisionGuide] Fallback fetch error:', dr.error);
+
+      if (dr.data) {
+        console.log(`[RevisionGuide] Fallback found: ${dr.data.length} items`);
+        const directGuides = dr.data.map(g => ({
+          id: g.id,
+          title: g.title || 'Revision Guide',
+          topic_id: q.topic_id
+        }));
+        guides = [...guides, ...directGuides];
+      }
     }
 
-    // Capture
+    // Capture state for current question so it's ready for renderExplanation
     q.revisionGuides = guides;
+    console.log(`[RevisionGuide] Final guides count: ${guides.length}`);
 
-    // 3. Render
+    // 3. Late Arrival Render
+    // If the user has ALREADY submitted the answer while we were fetching (race condition),
+    // the explanation box exists but has empty revision guides. We must populate it now.
     if (currentQuestion !== currentQIndex) return;
 
     const renderButtons = () => {
-      const container = document.querySelector('.revision-guides-section');
-      if (container && guides.length > 0) {
-        container.innerHTML = guides.map(g => `
-                <a href="study.html?topic_id=${g.topic_id}" target="_blank" class="revision-guide-btn" 
-                   style="display: inline-block; margin: 4px 8px 4px 0; padding: 6px 12px; background: #e8f5e9; color: #2e7d32; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 0.9em; border: 1px solid #c8e6c9;">
-                   📖 ${g.title}
-                </a>
-            `).join('');
+      // Use Specific Selector to find the ACTIVE explanation
+      const container = document.querySelector('#explanation .revision-guides-section');
+      if (container) {
+        console.log('[RevisionGuide] Found container, rendering...');
+        if (guides.length > 0) {
+          container.innerHTML = guides.map(g => `
+                    <a href="study.html?guide_id=${g.id}" target="_blank" class="revision-guide-btn" 
+                       style="display: inline-flex; align-items: center; gap: 6px; margin: 4px 8px 4px 0; padding: 6px 12px; background: #e8f5e9; color: #2e7d32; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 0.9em; border: 1px solid #c8e6c9;">
+                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                         <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                         <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                       </svg>
+                       ${g.title}
+                    </a>
+                `).join('');
+        }
+      } else {
+        console.log('[RevisionGuide] Container NOT found (User viewing question?)');
       }
     };
     renderButtons();
-  } catch (e) { console.error(e); }
+  } catch (e) { console.error('Error in checkAndRenderRevisionGuide:', e); }
 
   // DISABLE OLD LOGIC
   return;
@@ -1967,9 +2022,13 @@ function renderExplanation({
   // Generate revision guides HTML immediately if data exists
   const guidesHtml = (revisionGuides && revisionGuides.length > 0)
     ? revisionGuides.map(g => `
-        <a href="study.html?topic_id=${g.topic_id}" target="_blank" class="revision-guide-btn" 
-           style="display: inline-block; margin: 4px 8px 4px 0; padding: 6px 12px; background: #e8f5e9; color: #2e7d32; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 0.9em; border: 1px solid #c8e6c9;">
-           📖 ${g.title}
+        <a href="study.html?guide_id=${g.id}" target="_blank" class="revision-guide-btn" 
+           style="display: inline-flex; align-items: center; gap: 6px; margin: 4px 8px 4px 0; padding: 6px 12px; background: #e8f5e9; color: #2e7d32; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 0.9em; border: 1px solid #c8e6c9;">
+           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+             <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+           </svg>
+           ${g.title}
         </a>`).join('')
     : '<!-- Revision guides will be injected here if fetched later -->';
 
@@ -2257,15 +2316,13 @@ function attachMbaHandlers(q) {
   const updateCounter = () => {
     const checked = Array.from(fieldset.querySelectorAll('input[type=checkbox]:checked'));
     const count = checked.length;
-    counter.textContent = `${count} / ${requiredCount}`;
+    counter.textContent = `${count} selected`;
     // Enable submit when at least 2 options are selected (early submission allowed)
     submitBtn.disabled = (count < 2);
     if (count < 2) {
       submitBtn.title = "Select at least 2 options to submit";
-    } else if (count === requiredCount) {
-      submitBtn.title = "Submit your answers";
     } else {
-      submitBtn.title = `Submit early (${count}/${requiredCount} selected)`;
+      submitBtn.title = "Submit your answers";
     }
   };
 
@@ -2488,10 +2545,12 @@ function startTest() {
   // Shuffle questions array
   shuffleArray(questions);
 
+  const storedFlags = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY) || '{}');
+
   questionStates = questions.map(q => {
     const state = {
       status: 'not-attempted',
-      flagged: false,
+      flagged: !!storedFlags[String(q.id)], // Sync with persistent flags
       answer: q.type === 'sba' ? null :
         q.type === 'emq' ? (q.stems ? Array(q.stems.length).fill(null) : []) :
           q.type === 'mba' ? [] :

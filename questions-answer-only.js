@@ -10,7 +10,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const targetUrl = topicId ? `study.html?topic_id=${topicId}` : 'study.html';
 
     if (backLink) backLink.href = targetUrl;
-    if (backLinkBottom) backLinkBottom.href = targetUrl;
+
+    // Check for ongoing test to update bottom link
+    if (backLinkBottom) {
+        if (localStorage.getItem('quizStateV3')) {
+            backLinkBottom.href = 'practice-mixed.html';
+            backLinkBottom.textContent = '← Back to Ongoing Test';
+        } else {
+            backLinkBottom.href = targetUrl;
+        }
+    }
 
     if (!topicId) {
         document.getElementById('qa-content').innerHTML = '<div class="error-message">No topic specified.</div>';
@@ -19,6 +28,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await loadQuestions(topicId);
 });
+
+// Store questions globally for interaction handlers
+let currentQuestions = [];
 
 async function loadQuestions(topicId) {
     const container = document.getElementById('qa-content');
@@ -36,14 +48,83 @@ async function loadQuestions(topicId) {
             return;
         }
 
+        // Store for handlers
+        currentQuestions = questions;
+
         container.innerHTML = questions.map((q, index) => {
             normalizeQuestion(q);
             return renderQuestionBlock(q, index);
         }).join('');
 
+        // Attach event listeners for interactivity
+        attachInteractionHandlers();
+
     } catch (err) {
         console.error('Error loading questions:', err);
         container.innerHTML = '<div class="error-message">Error loading questions. Please try again later.</div>';
+    }
+}
+
+function attachInteractionHandlers() {
+    document.querySelectorAll('.question-block').forEach(block => {
+        // SBA/MBA Options
+        block.querySelectorAll('.q-option').forEach(opt => {
+            opt.addEventListener('click', handleOptionClick);
+        });
+
+        // EMQ Stems - simple reveal for now since matching is complex
+        block.querySelectorAll('.reveal-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const answerBox = e.target.nextElementSibling;
+                if (answerBox) {
+                    answerBox.style.display = 'block';
+                    e.target.style.display = 'none';
+                }
+            });
+        });
+    });
+}
+
+function handleOptionClick(e) {
+    const optParams = e.currentTarget.dataset;
+    const qIdx = parseInt(optParams.qIdx);
+    const optIdx = parseInt(optParams.optIdx);
+
+    // Guard
+    if (isNaN(qIdx) || isNaN(optIdx)) return;
+
+    const block = document.querySelector(`.question-block[data-q-idx="${qIdx}"]`);
+    if (!block || block.classList.contains('answered')) return; // Already answered
+
+    const q = currentQuestions[qIdx];
+    if (!q) return;
+
+    // Mark as answered
+    block.classList.add('answered');
+
+    // Visual feedback for selected option
+    const options = block.querySelectorAll('.q-option');
+    options[optIdx].classList.add('selected');
+
+    // Determine correctness (basic support for SBA single correct)
+    const correctIdx = q.correct;
+
+    if (typeof correctIdx === 'number') {
+        if (optIdx === correctIdx) {
+            options[optIdx].classList.add('correct');
+            options[optIdx].classList.remove('selected'); // Correct style overrides selected
+        } else {
+            options[optIdx].classList.add('wrong');
+            // Highlight correct one
+            if (options[correctIdx]) options[correctIdx].classList.add('correct');
+        }
+    }
+
+    // Reveal answer box
+    const answerBox = block.querySelector('.correct-answer-box');
+    if (answerBox) {
+        answerBox.style.display = 'block';
+        answerBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
 
@@ -103,9 +184,14 @@ function renderQuestionBlock(q, index) {
     let correctText = '';
 
     // Handle SBA/EMQ options for display context
+    // We add data attributes for interactivity
     if (q.type === 'sba' && q.options) {
         optionsHtml = `<div class="q-options">
-            ${q.options.map((opt, i) => `<div class="q-option">${String.fromCharCode(65 + i)}. ${opt}</div>`).join('')}
+            ${q.options.map((opt, i) => `
+                <div class="q-option" data-q-idx="${index}" data-opt-idx="${i}">
+                    ${String.fromCharCode(65 + i)}. ${opt}
+                </div>
+            `).join('')}
         </div>`;
 
         const validCorrect = (typeof q.correct === 'number' && q.correct >= 0 && q.correct < q.options.length);
@@ -115,13 +201,14 @@ function renderQuestionBlock(q, index) {
             correctText = 'Unknown (Data Error)';
         }
     } else if (q.type === 'emq' && q.options) {
+        // EMQ Options usually not clickable directly in this simple view, 
+        // or we could make them clickable but not tied to a specific stem easily.
+        // For now, list them statically or interactive? 
+        // Let's keep them static for EMQ as interaction is per-stem complex.
         optionsHtml = `<div class="q-options">
             <strong>Options:</strong><br>
-            ${q.options.map((opt, i) => `<div class="q-option">${String.fromCharCode(65 + i)}. ${opt}</div>`).join('')}
+            ${q.options.map((opt, i) => `<div class="q-option" style="cursor: default;">${String.fromCharCode(65 + i)}. ${opt}</div>`).join('')}
         </div>`;
-        // For EMQ, we might have multiple stems, but if this is the parent question structure:
-        // usually EMQs are stored as one big question or stems are nested. 
-        // Based on practice-mixed.js logic, q.stems exists for EMQ.
     }
 
     // Special rendering for EMQs which have stems
@@ -131,7 +218,8 @@ function renderQuestionBlock(q, index) {
             return `
                 <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px dashed #eee;">
                     <strong>Stem ${sIdx + 1}:</strong> ${stem.stem}
-                    <div class="correct-answer-box">
+                    <button class="reveal-btn" style="margin-top:0.5rem; padding: 4px 8px; cursor: pointer; background:#eee; border:1px solid #ccc; border-radius:4px;">Reveal Answer</button>
+                    <div class="correct-answer-box" style="display:none;">
                         <span class="correct-label">Correct Answer: ${cText}</span>
                         <div class="explanation">${stem.explanation}</div>
                     </div>
@@ -140,7 +228,7 @@ function renderQuestionBlock(q, index) {
         }).join('');
 
         return `
-            <div class="question-block">
+            <div class="question-block" data-q-idx="${index}">
                 <div class="q-header">
                     <span>Question ${index + 1} (${q.type.toUpperCase()})</span>
                     <span>${q['Question Code'] || ''}</span>
@@ -154,7 +242,7 @@ function renderQuestionBlock(q, index) {
 
     // Default SBA/MBA/Numeric rendering
     return `
-        <div class="question-block">
+        <div class="question-block" data-q-idx="${index}">
             <div class="q-header">
                 <span>Question ${index + 1} (${q.type ? q.type.toUpperCase() : 'General'})</span>
                 <span>${q['Question Code'] || ''}</span>
@@ -162,7 +250,7 @@ function renderQuestionBlock(q, index) {
             <div class="q-stem">${q.stem}</div>
             ${optionsHtml}
             
-            <div class="correct-answer-box">
+            <div class="correct-answer-box" style="display:none;">
                 <span class="correct-label">Correct Answer: ${correctText || 'See Explanation'}</span>
                 <div class="explanation">${q.explanation || 'No explanation available.'}</div>
             </div>
