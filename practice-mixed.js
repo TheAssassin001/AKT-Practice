@@ -1550,6 +1550,7 @@ function renderQuestion() {
         questionStates[currentQuestion].status = 'incorrect';
       }
       saveQuizState(); // <--- Save immediately after answer
+      updateFlaggedQuestionStatus(questions[currentQuestion].id, questionStates[currentQuestion].status); // Sync flag status
       renderStatusPanel();
       const input = document.getElementById('numeric-answer');
       input.disabled = true;
@@ -2075,6 +2076,7 @@ function attachSbaHandlers(q) {
       questionStates[currentQuestion].status = 'incorrect';
     }
     saveQuizState(); // <--- Save immediately after answer
+    updateFlaggedQuestionStatus(questions[currentQuestion].id, questionStates[currentQuestion].status); // Sync flag status
     renderStatusPanel();
 
     // Visual feedback animation
@@ -2273,6 +2275,7 @@ function attachEmqDropdownHandlers(q) {
       questionStates[currentQuestion].status = 'incorrect';
     }
     saveQuizState(); // <--- Save immediately after answer
+    updateFlaggedQuestionStatus(questions[currentQuestion].id, questionStates[currentQuestion].status); // Sync flag status
     renderStatusPanel();
     explanationBox.innerHTML = feedbackHtml;
     explanationBox.style.display = 'block';
@@ -2367,6 +2370,7 @@ function attachMbaHandlers(q) {
     }
 
     saveQuizState(true); // Immediate save
+    updateFlaggedQuestionStatus(questions[currentQuestion].id, questionStates[currentQuestion].status); // Sync flag status
     renderStatusPanel();
 
     // Visual feedback animation
