@@ -1909,26 +1909,36 @@ function renderEndScreen() {
   // Calculate total possible as sum of all SBA and EMQ stems
   let totalQuestions = 0;
 
-  // Topic-based analytics
-  const topicStats = {};
+  // Hierarchical stats: Category -> Topic -> Stats
+  const categoryStats = {};
+  // Flat stats for SRS (Spaced Repetition System)
+  const weakTopicUpdates = {};
 
   questions.forEach((q, idx) => {
+    const category = q.Category || 'General Knowledge';
     const topic = q.topic || 'General';
-    if (!topicStats[topic]) {
-      topicStats[topic] = { score: 0, possible: 0 };
+
+    // Initialize Category Stats
+    if (!categoryStats[category]) {
+      categoryStats[category] = { score: 0, possible: 0, topics: {} };
+    }
+    // Initialize Topic Stats within Category
+    if (!categoryStats[category].topics[topic]) {
+      categoryStats[category].topics[topic] = { score: 0, possible: 0 };
+    }
+    // Initialize SRS Stats
+    if (!weakTopicUpdates[topic]) {
+      weakTopicUpdates[topic] = { score: 0, possible: 0 };
     }
 
-    if (q.type === 'sba') {
-      totalQuestions++;
-      topicStats[topic].possible++;
-      if (questionStates[idx].status === 'correct') {
-        topicStats[topic].score++;
-      }
-    } else if (q.type === 'emq') {
-      const stemsPossible = q.stems.length;
-      totalQuestions += stemsPossible;
-      topicStats[topic].possible += stemsPossible;
+    let qPossible = 0;
+    let qScore = 0;
 
+    if (q.type === 'sba') {
+      qPossible = 1;
+      if (questionStates[idx].status === 'correct') qScore = 1;
+    } else if (q.type === 'emq') {
+      qPossible = q.stems.length;
       const stemAnswers = questionStates[idx].answer;
       if (Array.isArray(stemAnswers)) {
         q.stems.forEach((stem, sIdx) => {
@@ -1936,41 +1946,72 @@ function renderEndScreen() {
             ? questionStates[idx].shuffledStemCorrectIndices[sIdx]
             : stem.correct;
           if (parseInt(stemAnswers[sIdx]) === correctIdx) {
-            topicStats[topic].score++;
+            qScore++;
           }
         });
       }
     } else if (q.type === 'mba') {
-      totalQuestions++;
-      topicStats[topic].possible++;
-      if (questionStates[idx].status === 'correct') {
-        topicStats[topic].score++;
-      }
+      qPossible = 1;
+      if (questionStates[idx].status === 'correct') qScore = 1;
     } else if (q.type === 'numeric') {
-      totalQuestions++;
-      topicStats[topic].possible++;
-      if (questionStates[idx].status === 'correct') {
-        topicStats[topic].score++;
-      }
+      qPossible = 1;
+      if (questionStates[idx].status === 'correct') qScore = 1;
     }
+
+    // Update Totals
+    totalQuestions += qPossible;
+
+    // Update Hierarchy
+    categoryStats[category].possible += qPossible;
+    categoryStats[category].score += qScore;
+    categoryStats[category].topics[topic].possible += qPossible;
+    categoryStats[category].topics[topic].score += qScore;
+
+    // Update SRS
+    weakTopicUpdates[topic].possible += qPossible;
+    weakTopicUpdates[topic].score += qScore;
   });
 
   let topicBreakdownHtml = `
     <div class="topic-breakdown" style="margin-top: 2rem; border-top: 1px solid #eee; padding-top: 1.5rem; text-align: left;">
-      <h3 style="color: #2563a6; margin-bottom: 1rem;">Topic Breakdown</h3>
-      <div style="display: grid; gap: 0.8rem;">
+      <h3 style="color: #2563a6; margin-bottom: 1rem;">Performance Breakdown</h3>
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
   `;
 
-  for (const topic in topicStats) {
-    const stat = topicStats[topic];
-    const percentage = ((stat.score / stat.possible) * 100).toFixed(0);
+  // Sort categories alphabetically or by score? Alphabetical is cleaner for lookup.
+  Object.keys(categoryStats).sort().forEach(category => {
+    const catStat = categoryStats[category];
+    const catPercent = catStat.possible > 0 ? ((catStat.score / catStat.possible) * 100).toFixed(0) : 0;
+
     topicBreakdownHtml += `
-      <div class="topic-stat-row" style="display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; padding: 0.8rem 1.2rem; border-radius: 8px;">
-        <span style="font-weight: 500;">${topic}</span>
-        <span style="color: #666;">${stat.score}/${stat.possible} (${percentage}%)</span>
+      <div class="category-block" style="background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+        <!-- Category Header -->
+        <div class="category-header" style="background: #f1f5f9; padding: 0.8rem 1.2rem; display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: #1e293b;">
+          <span>${category}</span>
+          <span class="${catStat.score === catStat.possible ? 'text-success' : ''}">${catStat.score}/${catStat.possible} (${catPercent}%)</span>
+        </div>
+        <!-- Topic Rows -->
+        <div class="topic-rows" style="padding: 0.5rem 0;">
+    `;
+
+    Object.keys(catStat.topics).sort().forEach(topic => {
+      const topStat = catStat.topics[topic];
+      const topPercent = topStat.possible > 0 ? ((topStat.score / topStat.possible) * 100).toFixed(0) : 0;
+
+      topicBreakdownHtml += `
+        <div class="topic-row" style="padding: 0.6rem 1.2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; font-size: 0.95rem;">
+          <span style="color: #64748b; padding-left: 1rem;">${topic}</span>
+          <span style="color: #475569;">${topStat.score}/${topStat.possible} (${topPercent}%)</span>
+        </div>
+      `;
+    });
+
+    topicBreakdownHtml += `
+        </div>
       </div>
     `;
-  }
+  });
+
   topicBreakdownHtml += '</div></div>';
 
   section.innerHTML = `
@@ -1995,14 +2036,16 @@ function renderEndScreen() {
     });
   }
 
-  // Update SRS - Track weak topics
+  // Update SRS - Track weak topics (Granular)
   const weakTopics = JSON.parse(localStorage.getItem(WEAK_TOPICS_KEY) || '{}');
-  for (const topic in topicStats) {
-    const stat = topicStats[topic];
-    if (stat.score / stat.possible < WEAK_TOPIC_THRESHOLD) {
-      weakTopics[topic] = (weakTopics[topic] || 0) + 1;
-    } else {
-      weakTopics[topic] = Math.max(0, (weakTopics[topic] || 0) - 1);
+  for (const topic in weakTopicUpdates) {
+    const stat = weakTopicUpdates[topic];
+    if (stat.possible > 0) { // Only update if question was presented
+      if (stat.score / stat.possible < WEAK_TOPIC_THRESHOLD) {
+        weakTopics[topic] = (weakTopics[topic] || 0) + 1;
+      } else {
+        weakTopics[topic] = Math.max(0, (weakTopics[topic] || 0) - 1);
+      }
     }
   }
   localStorage.setItem(WEAK_TOPICS_KEY, JSON.stringify(weakTopics));
@@ -2043,7 +2086,6 @@ function renderExplanation({
         ${furtherReading.map(link => `<li><a href="${link.url}" target="_blank" rel="noopener">${link.text}</a></li>`).join('')}
       </ul>
     </div>
-    ${topicBtn ? `<div class="topic-btn-row"><a href="${topicBtn.url}" target="_blank" rel="noopener" class="topic-btn">${topicBtn.text}</a></div>` : ''}
     <div id="revision-guides-section-${new Date().getTime()}" class="revision-guides-section" style="margin-top: 10px;">
       ${guidesHtml}
     </div>

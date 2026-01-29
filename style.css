@@ -1415,3 +1415,59 @@ p {
         margin: 20% auto;
     }
 }
+/* --- Interactive Questions (Study Mode) Enhancements --- */
+
+/* Numeric Input Feedback */
+input.correct-input {
+    border-color: #4caf50 !important;
+    background-color: #e8f5e9 !important;
+    color: #1b5e20 !important;
+}
+
+input.correct-input:disabled {
+    opacity: 1; /* Ensure visibility even when disabled */
+}
+
+input.wrong-input {
+    border-color: #f44336 !important;
+    background-color: #ffebee !important;
+    color: #b71c1c !important;
+}
+
+input.wrong-input:disabled {
+    opacity: 1;
+}
+
+/* MBA/SBA Options Feedback */
+.mba-option.correct, .sba-option.correct {
+    border-color: #4caf50 !important;
+    background-color: #e8f5e9 !important;
+    color: #1b5e20 !important;
+}
+
+.mba-option.wrong, .sba-option.wrong {
+    border-color: #f44336 !important;
+    background-color: #ffebee !important;
+    color: #b71c1c !important;
+}
+
+/* EMQ Select Feedback */
+select.correct-input {
+    border-color: #4caf50 !important;
+    background-color: #e8f5e9 !important;
+    color: #1b5e20 !important;
+}
+
+select.wrong-input {
+    border-color: #f44336 !important;
+    background-color: #ffebee !important;
+    color: #b71c1c !important;
+}
+
+/* Selected state for options before submission */
+.sba-option.selected, .mba-option.selected {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+    color: #0d47a1;
+}
+
