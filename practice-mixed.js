@@ -15,7 +15,13 @@ const SECONDS_PER_QUESTION = 60;
 const AUTO_SAVE_INTERVAL = 5; // Save every 5 seconds during exam
 const STORAGE_KEY = 'quizStateV3';
 const WEAK_TOPICS_KEY = 'weakTopics';
-const FLAGGED_QUESTIONS_KEY = 'akt-flagged-questions';
+const FLAGGED_QUESTIONS_KEY_PRACTICE = 'akt-flagged-questions-practice';
+const FLAGGED_QUESTIONS_KEY_EXAM = 'akt-flagged-questions-exam';
+
+// Helper to get the correct flag key based on mode
+function getFlaggedKey(mode) {
+  return mode === 'exam' ? FLAGGED_QUESTIONS_KEY_EXAM : FLAGGED_QUESTIONS_KEY_PRACTICE;
+}
 const DISTINCTION_THRESHOLD = 0.8;
 const WEAK_TOPIC_THRESHOLD = 0.7;
 const SMART_REVISION_LIMIT = 20;
@@ -39,7 +45,7 @@ async function reloadQuestions() {
   }
 
   // Re-initialize state if new questions are added or order changes
-  const storedFlags = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY) || '{}');
+  const storedFlags = JSON.parse(localStorage.getItem(getFlaggedKey(quizMode)) || '{}');
 
   questionStates = questions.map(q => ({
     status: 'not-attempted',
@@ -667,7 +673,9 @@ function loadQuizState(requiredType = null) {
     }
 
     // Sync restoration with persistent flags (in case changed in another tab/session)
-    const storedFlags = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY) || '{}');
+    // Use mode-specific flag key
+    const flagKey = getFlaggedKey(state.quizMode || 'practice');
+    const storedFlags = JSON.parse(localStorage.getItem(flagKey) || '{}');
     state.questionStates.forEach((qs, i) => {
       const qId = questions[i]?.id;
       if (qId) {
@@ -700,10 +708,11 @@ function clearQuizState() {
 
 // Update flagged question status when question is answered
 function updateFlaggedQuestionStatus(questionId, status) {
-  const flaggedData = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY) || '{}');
+  const flagKey = getFlaggedKey(quizMode);
+  const flaggedData = JSON.parse(localStorage.getItem(flagKey) || '{}');
   if (flaggedData[questionId]) {
     flaggedData[questionId].status = status;
-    localStorage.setItem(FLAGGED_QUESTIONS_KEY, JSON.stringify(flaggedData));
+    localStorage.setItem(flagKey, JSON.stringify(flaggedData));
   }
 }
 
@@ -1485,7 +1494,8 @@ function renderQuestion() {
       return;
     }
 
-    const flaggedData = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY) || '{}');
+    const flagKey = getFlaggedKey(quizMode);
+    const flaggedData = JSON.parse(localStorage.getItem(flagKey) || '{}');
 
     if (currentState.flagged) {
       // Add to flagged questions
@@ -1500,7 +1510,7 @@ function renderQuestion() {
       }
     }
 
-    localStorage.setItem(FLAGGED_QUESTIONS_KEY, JSON.stringify(flaggedData));
+    localStorage.setItem(flagKey, JSON.stringify(flaggedData));
     saveQuizState();
     renderQuestion();
   };
@@ -2584,14 +2594,18 @@ function startTest() {
     reviewMode = false;
   }
 
-  examDuration = SECONDS_PER_QUESTION * questions.length;
+  examDuration = 30; // TEMPORARY: 30 seconds for testing (was SECONDS_PER_QUESTION * questions.length)
   if (quizMode === 'exam') timeLeft = examDuration;
   else timeLeft = null;
 
-  // Shuffle questions array
-  shuffleArray(questions);
+  // Sort questions numerically by Question Code
+  questions.sort((a, b) => {
+    const codeA = parseInt(a['Question Code']) || 0;
+    const codeB = parseInt(b['Question Code']) || 0;
+    return codeA - codeB;
+  });
 
-  const storedFlags = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY) || '{}');
+  const storedFlags = JSON.parse(localStorage.getItem(getFlaggedKey(quizMode)) || '{}');
 
   questionStates = questions.map(q => {
     const state = {

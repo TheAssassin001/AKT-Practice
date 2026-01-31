@@ -5,6 +5,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     const guideId = params.get('guide_id');
     const topicId = params.get('topic_id');
 
+    // Add "Back to Ongoing Test" button if there's an active test
+    const hasOngoingTest = localStorage.getItem('quizStateV3');
+    if (hasOngoingTest) {
+        // Find a good place to insert the button (after the page header)
+        const section = document.querySelector('main section');
+        if (section) {
+            const backButton = document.createElement('div');
+            backButton.style.cssText = 'text-align: center; margin: 1rem 0; padding: 1rem; background: #e3f2fd; border-radius: 8px;';
+            backButton.innerHTML = `
+                <a href="practice-mixed.html" style="color: #1976d2; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Back to Ongoing Test
+                </a>
+            `;
+            section.insertBefore(backButton, section.firstChild);
+        }
+    }
+
     if (guideId) {
         // Direct guide navigation - load specific guide by ID
         await loadSpecificGuide(guideId);

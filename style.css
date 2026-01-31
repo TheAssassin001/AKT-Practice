@@ -1415,6 +1415,7 @@ p {
         margin: 20% auto;
     }
 }
+
 /* --- Interactive Questions (Study Mode) Enhancements --- */
 
 /* Numeric Input Feedback */
@@ -1425,7 +1426,8 @@ input.correct-input {
 }
 
 input.correct-input:disabled {
-    opacity: 1; /* Ensure visibility even when disabled */
+    opacity: 1;
+    /* Ensure visibility even when disabled */
 }
 
 input.wrong-input {
@@ -1439,13 +1441,15 @@ input.wrong-input:disabled {
 }
 
 /* MBA/SBA Options Feedback */
-.mba-option.correct, .sba-option.correct {
+.mba-option.correct,
+.sba-option.correct {
     border-color: #4caf50 !important;
     background-color: #e8f5e9 !important;
     color: #1b5e20 !important;
 }
 
-.mba-option.wrong, .sba-option.wrong {
+.mba-option.wrong,
+.sba-option.wrong {
     border-color: #f44336 !important;
     background-color: #ffebee !important;
     color: #b71c1c !important;
@@ -1465,9 +1469,20 @@ select.wrong-input {
 }
 
 /* Selected state for options before submission */
-.sba-option.selected, .mba-option.selected {
+.sba-option.selected,
+.mba-option.selected {
     background-color: #e3f2fd;
     border-color: #2196f3;
     color: #0d47a1;
 }
 
+/* Flag Tab Styles */
+.flag-tab:hover {
+    color: #1976d2;
+    background-color: #f5f5f5;
+}
+
+.flag-tab.active {
+    border-bottom-color: #1976d2 !important;
+    color: #1976d2 !important;
+}
