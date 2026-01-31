@@ -18,8 +18,16 @@ function setupTabs() {
     tabs.forEach(tab => {
         tab.addEventListener('click', function () {
             // Update active state
-            tabs.forEach(t => t.classList.remove('active'));
+            tabs.forEach(t => {
+                t.classList.remove('active');
+                // Reset inline styles
+                t.style.borderBottom = '3px solid transparent';
+                t.style.color = '#666';
+            });
             this.classList.add('active');
+            // Set active inline styles
+            this.style.borderBottom = '3px solid #1976d2';
+            this.style.color = '#1976d2';
 
             // Update filter and reload
             currentFilter = this.getAttribute('data-filter');
@@ -128,6 +136,10 @@ async function fetchFlaggedQuestionDetails(questionIds, flaggedData) {
             noFlaggedDiv.style.display = 'block';
             return;
         }
+
+        // Questions found - ensure container is visible
+        container.style.display = 'block';
+        noFlaggedDiv.style.display = 'none';
 
         // Helper for safe JSON parsing (same as practice-mixed.js)
         const safeParse = (val, fallback = []) => {
@@ -321,4 +333,27 @@ function removeFlaggedQuestion(questionId, mode) {
 
 // Initialize on page load
 window.addEventListener('DOMContentLoaded', initializePage);
+
+// Also handle browser back/forward button navigation
+// pageshow fires every time the page is shown, including from cache
+window.addEventListener('pageshow', function (event) {
+    // If page was restored from cache, reinitialize
+    if (event.persisted) {
+        // Reset filter to 'all' to avoid showing cached empty state
+        currentFilter = 'all';
+        // Make sure the correct tab is active
+        document.querySelectorAll('.flag-tab').forEach(tab => {
+            if (tab.getAttribute('data-filter') === 'all') {
+                tab.classList.add('active');
+                tab.style.borderBottom = '3px solid #1976d2';
+                tab.style.color = '#1976d2';
+            } else {
+                tab.classList.remove('active');
+                tab.style.borderBottom = '3px solid transparent';
+                tab.style.color = '#666';
+            }
+        });
+        initializePage();
+    }
+});
 

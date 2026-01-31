@@ -34,7 +34,7 @@ async function initCategories() {
         const topics = {};
 
         // 2. Get user progress from localStorage
-        const savedState = JSON.parse(localStorage.getItem("quizStateV2") || "{}");
+        const savedState = JSON.parse(localStorage.getItem("quizStateV3") || "{}");
         const answeredStates = savedState.questionStates || [];
 
         data.forEach((q, idx) => {
@@ -79,3 +79,11 @@ async function initCategories() {
 }
 
 document.addEventListener('DOMContentLoaded', initCategories);
+
+// Also handle browser back/forward button navigation
+window.addEventListener('pageshow', function (event) {
+    // If page was restored from cache, reinitialize
+    if (event.persisted) {
+        initCategories();
+    }
+});
