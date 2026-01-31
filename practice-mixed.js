@@ -1697,7 +1697,7 @@ async function checkAndRenderRevisionGuide(q) {
         console.log('[RevisionGuide] Found container, rendering...');
         if (guides.length > 0) {
           container.innerHTML = guides.map(g => `
-                    <a href="study.html?guide_id=${g.id}" target="_blank" class="revision-guide-btn" 
+                    <a href="study.html?guide_id=${g.id}" class="revision-guide-btn" 
                        style="display: inline-flex; align-items: center; gap: 6px; margin: 4px 8px 4px 0; padding: 6px 12px; background: #e8f5e9; color: #2e7d32; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 0.9em; border: 1px solid #c8e6c9;">
                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
@@ -2076,7 +2076,7 @@ function renderExplanation({
   // Generate revision guides HTML immediately if data exists
   const guidesHtml = (revisionGuides && revisionGuides.length > 0)
     ? revisionGuides.map(g => `
-        <a href="study.html?guide_id=${g.id}" target="_blank" class="revision-guide-btn" 
+        <a href="study.html?guide_id=${g.id}" class="revision-guide-btn" 
            style="display: inline-flex; align-items: center; gap: 6px; margin: 4px 8px 4px 0; padding: 6px 12px; background: #e8f5e9; color: #2e7d32; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 0.9em; border: 1px solid #c8e6c9;">
            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
