@@ -268,7 +268,8 @@ function renderSearchResults(questions, container) {
 
         let code = dCode ? dCode : qCode;
         if (dCode && String(dCode) !== String(qCode)) {
-            code = `${dCode} <span style="font-weight:400; color:#888; font-size:0.85em;">(${qCode})</span>`;
+            // Unify styling: both bold orange (inherited from parent span)
+            code = `${dCode} (${qCode})`;
         }
         const category = q.Category || 'General';
 
