@@ -475,10 +475,13 @@ async function initializeApp() {
     showToast('Test progress restored');
 
     // Guard: if timeLeft <= 0 on load, immediately end test, clear state, and show end screen
-    if (quizMode === 'exam' && (typeof timeLeft === 'number') && timeLeft <= 0) {
+    if (quizMode === 'exam' && (typeof timeLeft === 'number') && timeLeft <= 0 && !testEnded) {
       clearQuizState();
       renderEndScreen();
       // Do not render any question
+    } else if (testEnded) {
+      // Restore end screen for finished tests
+      renderEndScreen();
     } else {
       if (quizMode === 'exam' && timeLeft > 0) {
         startExamTimer();
@@ -641,7 +644,7 @@ function loadQuizState(requiredType = null) {
   try {
     const state = JSON.parse(raw);
     if (!state || !Array.isArray(state.questionStates)) return false;
-    if (state.testEnded) return false; // Ignore finished tests (Start Fresh)
+    // We NO LONGER ignore finished tests (Allow persistence of results)
 
     // Check if category matches (if we're on a category page)
     const params = new URLSearchParams(window.location.search);
@@ -1659,12 +1662,8 @@ function renderQuestion() {
           saveQuizState(); // Save new position
           renderQuestion();
         } else {
-          // 1. Stop timer immediately to prevent auto-saves
-          if (timerInterval) clearInterval(timerInterval);
-          // 2. Set flag to block any pending saves
-          testEnded = true;
-          // 3. Clear storage
-          clearQuizState();
+          // 3. Save state (persistence)
+          saveQuizState(true);
           // 4. Render UI
           renderEndScreen();
         }
@@ -2079,11 +2078,29 @@ function renderEndScreen() {
       <p style="font-size: 1.25rem; margin-bottom: 0.5rem;">Your final score:</p>
       <div style="font-size: 3rem; font-weight: 800; color: #1565c0; margin-bottom: 1rem;">${totalScore} / ${totalQuestions}</div>
       
+      <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;">
+        <a href="practice.html" class="cta-btn">Return to Dashboard</a>
+        <button id="retake-test-btn" class="cta-btn" style="background: #607d8b; border: none; cursor: pointer;">Retake Test</button>
+      </div>
+
       ${topicBreakdownHtml}
-      
-      <a href="practice.html" class="cta-btn" style="margin-top:2.5rem; display: inline-block;">Return to Dashboard</a>
     </div>
   `;
+
+  // Attach Retake handler
+  setTimeout(() => {
+    const retakeBtn = document.getElementById('retake-test-btn');
+    if (retakeBtn) {
+      retakeBtn.onclick = () => {
+        if (confirm("Are you sure you want to start fresh? Your current result screen will be cleared.")) {
+          clearQuizState();
+          const params = new URLSearchParams(window.location.search);
+          params.set('new', '1');
+          window.location.href = window.location.pathname + '?' + params.toString();
+        }
+      };
+    }
+  }, 0);
 
   // Trigger Confetti for high scores
   if (totalScore / totalQuestions >= DISTINCTION_THRESHOLD && typeof confetti === 'function') {
@@ -2108,7 +2125,8 @@ function renderEndScreen() {
   }
   localStorage.setItem(WEAK_TOPICS_KEY, JSON.stringify(weakTopics));
 
-  clearQuizState();
+  // No longer calling clearQuizState() here to keep results persistent
+  saveQuizState(true);
 }
 
 
@@ -2232,7 +2250,6 @@ function attachSbaHandlers(q) {
         renderQuestion();
       } else {
         renderEndScreen();
-        clearQuizState();
       }
     };
     form.appendChild(nextBtn);
@@ -2402,7 +2419,6 @@ function attachEmqDropdownHandlers(q) {
         renderQuestion();
       } else {
         renderEndScreen();
-        clearQuizState();
       }
     };
     form.appendChild(nextBtn);
@@ -2550,7 +2566,6 @@ function attachMbaHandlers(q) {
         renderQuestion();
       } else {
         renderEndScreen();
-        clearQuizState();
       }
     };
     form.appendChild(nextBtn);
