@@ -244,7 +244,7 @@ async function loadAllGuides() {
         }
 
         container.innerHTML = data.map(guide => `
-            <a href="study.html?topic_id=${guide.topic_id}" class="resource-card" style="text-decoration: none; color: inherit; display: block;">
+            <a href="study.html?guide_id=${guide.id}" class="resource-card" style="text-decoration: none; color: inherit; display: block;">
                 <h3>${guide.title}</h3>
                 <p>${guide.summary || 'Click to read full guide.'}</p>
             </a>
