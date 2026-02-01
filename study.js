@@ -46,10 +46,16 @@ function setupSearchHandler() {
 
     searchInput.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase().trim();
-        const filtered = allRevisionGuides.filter(guide =>
-            guide.title.toLowerCase().includes(query) ||
-            (guide.summary && guide.summary.toLowerCase().includes(query))
-        );
+        const filtered = allRevisionGuides.filter(guide => {
+            const titleMatch = guide.title.toLowerCase().includes(query);
+            const summaryMatch = guide.summary && guide.summary.toLowerCase().includes(query);
+
+            // Check content fields for full-text search
+            const content = (guide.content || guide.html_content || guide.body || '').toLowerCase();
+            const contentMatch = content.includes(query);
+
+            return titleMatch || summaryMatch || contentMatch;
+        });
         renderGuidesToGrid(filtered);
     });
 }
