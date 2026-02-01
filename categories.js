@@ -262,7 +262,14 @@ function renderSearchResults(questions, container) {
         stemSnippet = stemSnippet.replace(/<[^>]*>?/gm, '');
         if (stemSnippet.length > 100) stemSnippet = stemSnippet.substring(0, 100) + '...';
 
-        const code = q['Question Code'] || q['Display Code'] || `Q${q.id}`;
+        // Show BOTH Display Code (e.g. "CR 1002") and Question Code (e.g. "1002")
+        const qCode = q['Question Code'] || `Q${q.id}`;
+        const dCode = q['Display Code'] || q['display_code'];
+
+        let code = dCode ? dCode : qCode;
+        if (dCode && String(dCode) !== String(qCode)) {
+            code = `${dCode} <span style="font-weight:400; color:#888; font-size:0.85em;">(${qCode})</span>`;
+        }
         const category = q.Category || 'General';
 
         return `
@@ -271,7 +278,6 @@ function renderSearchResults(questions, container) {
                 <div style="width:100%">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
                         <span style="font-weight:700; color:#e65100; font-size:0.9rem;">${code}</span>
-                        <span style="font-size:0.8rem; background:#f5f5f5; padding:2px 6px; border-radius:4px; color:#666;">${q.type ? q.type.toUpperCase() : 'Q'}</span>
                     </div>
                     
                     <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem; color: #333;">${category}</h4>
