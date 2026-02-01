@@ -76,6 +76,8 @@ function loadFlaggedQuestions(filter = 'all') {
 
         if (!allFlagged || Object.keys(allFlagged).length === 0) {
             container.style.display = 'none';
+            const actionsDiv = document.getElementById('flagged-actions');
+            if (actionsDiv) actionsDiv.style.display = 'none';
             noFlaggedDiv.style.display = 'block';
             return;
         }
@@ -121,6 +123,7 @@ function loadFlaggedQuestions(filter = 'all') {
 async function fetchFlaggedQuestionDetails(questionIds, flaggedData) {
     const container = document.getElementById('flagged-container');
     const noFlaggedDiv = document.getElementById('no-flagged');
+    const actionsDiv = document.getElementById('flagged-actions');
 
     try {
         // Fetch from Supabase
@@ -133,12 +136,14 @@ async function fetchFlaggedQuestionDetails(questionIds, flaggedData) {
 
         if (!data || data.length === 0) {
             container.style.display = 'none';
+            if (actionsDiv) actionsDiv.style.display = 'none';
             noFlaggedDiv.style.display = 'block';
             return;
         }
 
         // Questions found - ensure container is visible
         container.style.display = 'block';
+        if (actionsDiv) actionsDiv.style.display = 'block';
         noFlaggedDiv.style.display = 'none';
 
         // Helper for safe JSON parsing (same as practice-mixed.js)
@@ -266,7 +271,7 @@ async function fetchFlaggedQuestionDetails(questionIds, flaggedData) {
             }
 
             html += `
-        <div style="background: #fff; border: 2px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; transition: all 0.2s ease;">
+        <div class="question-card" onclick="window.location.href='practice-mixed.html?mode=flagged&new=1&startId=${questionId}'" style="background: #fff; border: 2px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; transition: all 0.2s ease; cursor: pointer; position: relative;">
           <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
             <div>
               <span style="background: #e3f2fd; color: #1565c0; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; margin-right: 0.5rem;">${codeText}</span>
@@ -294,7 +299,8 @@ async function fetchFlaggedQuestionDetails(questionIds, flaggedData) {
 
         // Attach delete button handlers
         document.querySelectorAll('.delete-flag-btn').forEach(btn => {
-            btn.addEventListener('click', function () {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation(); // Prevent card click
                 const questionId = this.getAttribute('data-question-id');
                 const mode = this.getAttribute('data-mode');
                 removeFlaggedQuestion(questionId, mode);

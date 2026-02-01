@@ -401,6 +401,14 @@ async function initializeApp() {
   const typeParam = params.get('type');
   const expectedType = typeParam ? typeParam.toLowerCase() : null;
 
+  // New session requested? (e.g. from flagged questions page)
+  if (params.get('new') === '1') {
+    clearQuizState();
+    // Remove 'new' param from URL so refresh restores state instead of resetting again
+    const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?mode=flagged";
+    window.history.replaceState({ path: newUrl }, '', newUrl);
+  }
+
   if (!loadQuizState(expectedType)) {
     // Clear loading message before showing modal
     if (section) section.innerHTML = '';
@@ -452,6 +460,11 @@ async function initializeApp() {
 
       startTest();
       startExamTimer();
+    } else if (modeParam === 'flagged') {
+      // Flagged Questions Mode
+      selectedType = 'mixed';
+      quizMode = 'practice';
+      startTest();
     } else {
       showModeModal();
     }
@@ -2546,6 +2559,30 @@ function startTest() {
     } else {
       showToast(`Loaded ${questions.length} questions for this topic.`);
     }
+  } else if (new URLSearchParams(window.location.search).get('mode') === 'flagged') {
+    // Mode: Flagged Questions Review
+    const practiceFlags = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY_PRACTICE) || '{}');
+    const examFlags = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY_EXAM) || '{}');
+
+    // Combine IDs from both practice and exam modes
+    const flaggedIds = new Set([
+      ...Object.keys(practiceFlags),
+      ...Object.keys(examFlags)
+    ]);
+
+    if (flaggedIds.size === 0) {
+      alert("No flagged questions found.");
+      window.location.href = 'flagged.html';
+      return;
+    }
+
+    questions = allQuestions.filter(q => flaggedIds.has(q.id));
+
+    // If we have flagged questions, set mode to practice (untimed)
+    quizMode = 'practice';
+    selectedType = 'mixed'; // Flagged questions can be any type
+    showToast(`Loaded ${questions.length} flagged questions.`);
+
   } else if (topicParam) {
     questions = allQuestions.filter(q => q.Category === topicParam);
     showToast(`Category: ${topicParam}`);
@@ -2575,6 +2612,11 @@ function startTest() {
 
   if (questions.length === 0) {
     alert("No questions found for the selected type.");
+    // If looking for flagged and none valid found (e.g. deleted from DB but in localstorage)
+    if (new URLSearchParams(window.location.search).get('mode') === 'flagged') {
+      window.location.href = 'flagged.html';
+      return;
+    }
     showModeModal();
     return;
   }
@@ -2598,12 +2640,20 @@ function startTest() {
   if (quizMode === 'exam') timeLeft = examDuration;
   else timeLeft = null;
 
-  // Sort questions numerically by Question Code
   questions.sort((a, b) => {
     const codeA = parseInt(a['Question Code']) || 0;
     const codeB = parseInt(b['Question Code']) || 0;
     return codeA - codeB;
   });
+
+  // Check for startId param to jump to specific question
+  const startId = new URLSearchParams(window.location.search).get('startId');
+  if (startId) {
+    const startIndex = questions.findIndex(q => q.id === startId);
+    if (startIndex !== -1) {
+      currentQuestion = startIndex;
+    }
+  }
 
   const storedFlags = JSON.parse(localStorage.getItem(getFlaggedKey(quizMode)) || '{}');
 
