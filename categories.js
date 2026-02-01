@@ -32,7 +32,7 @@ async function initCategories() {
 
             const topic = q.Category || 'General';
             if (!topics[topic]) {
-                topics[topic] = { total: 0, completed: 0, flagged: 0 };
+                topics[topic] = { total: 0, completed: 0, practiceFlagged: 0, examFlagged: 0 };
             }
             topics[topic].total++;
 
@@ -43,8 +43,11 @@ async function initCategories() {
 
             // Check flags
             const qIdStr = String(q.id);
-            if (practiceFlags[qIdStr] || examFlags[qIdStr]) {
-                topics[topic].flagged++;
+            if (practiceFlags[qIdStr]) {
+                topics[topic].practiceFlagged++;
+            }
+            if (examFlags[qIdStr]) {
+                topics[topic].examFlagged++;
             }
         });
 
@@ -78,9 +81,18 @@ async function initCategories() {
 
                             <div style="font-size:0.9rem; color:#555; display:flex; flex-direction:column; gap:0.3rem;">
                                 <div>${t.completed} questions out of ${t.total} completed</div>
-                                ${t.flagged > 0 ? `<div style="color:#d32f2f; font-weight:600; display:flex; align-items:center; gap:6px;">
-                                    <span style="font-size:1.2em; line-height:1;">&#9873;</span> ${t.flagged} flagged
-                                </div>` : ''}
+                                
+                                <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.2rem;">
+                                    ${t.practiceFlagged > 0 ? `
+                                    <div style="color:#2e7d32; font-weight:600; font-size:0.85rem; display:flex; align-items:center; gap:4px; background:#e8f5e9; padding:2px 8px; border-radius:12px;">
+                                        <span style="font-size:1.1em; line-height:1;">&#9873;</span> ${t.practiceFlagged} Practice
+                                    </div>` : ''}
+                                    
+                                    ${t.examFlagged > 0 ? `
+                                    <div style="color:#d32f2f; font-weight:600; font-size:0.85rem; display:flex; align-items:center; gap:4px; background:#ffebee; padding:2px 8px; border-radius:12px;">
+                                        <span style="font-size:1.1em; line-height:1;">&#9873;</span> ${t.examFlagged} Mock
+                                    </div>` : ''}
+                                </div>
                             </div>
                         </div>
                     </a>
