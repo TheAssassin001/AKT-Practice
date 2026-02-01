@@ -174,10 +174,27 @@ function setupQuestionSearch(allQuestions) {
         const filtered = allQuestions.filter(q => {
             // 1. Code Match
             const qCode = String(q['Question Code'] || '').toLowerCase();
-            const dCode = String(q['Display Code'] || '').toLowerCase();
+            // Also check lowercase display_code just in case
+            const dCode = String(q['Display Code'] || q['display_code'] || '').toLowerCase();
             const idCode = String(q.id).toLowerCase();
 
+            // Direct match
             if (qCode.includes(query) || dCode.includes(query) || idCode === query || ('q' + idCode) === query) return true;
+
+            // Prefix Stripping for "CR 1002" -> "1002"
+            // Generalized approach: Extract the first sequence of numbers found in the query.
+            // This handles ANY prefix: "SBA 123", "EMQ 1002", "FOO 5", "Q123"
+            const numberMatch = query.match(/\d+/);
+            const codeQuery = numberMatch ? numberMatch[0] : '';
+
+            if (codeQuery !== query && codeQuery.length > 0) {
+                // Universal Match: Check EVERYTHING. 
+                // Convert the whole question to a lowercase string.
+                // If "100" is in the object anywhere (ID, code, custom_field), find it.
+                // This bypasses any column naming mismatches (e.g. Question Code vs question_code).
+                const allText = JSON.stringify(q).toLowerCase();
+                if (allText.includes(codeQuery)) return true;
+            }
 
             // 2. Stem/Body Match
             const stemText = typeof q.stem === 'string' ? q.stem.toLowerCase() : JSON.stringify(q.stem || '').toLowerCase();
@@ -204,7 +221,44 @@ function renderSearchResults(questions, container) {
     const subset = questions.slice(0, displayLimit);
 
     container.innerHTML = subset.map(q => {
-        let stemSnippet = typeof q.stem === 'string' ? q.stem : 'Question Text';
+        let stemSnippet = '';
+
+        // Handle various stem formats (String, JSON String, Object)
+        try {
+            let info = q.info || q.stem;
+            if (typeof info === 'string') {
+                // Try to parse if it looks like JSON
+                if (info.trim().startsWith('{') || info.trim().startsWith('[')) {
+                    try {
+                        const parsed = JSON.parse(info);
+                        info = parsed;
+                    } catch (e) { /* ignore, treat as string */ }
+                }
+            }
+
+            // Extract text based on structure
+            if (typeof info === 'string') {
+                stemSnippet = info;
+            } else if (info && typeof info === 'object') {
+                // EMQ / MBA Structure: { stems: [{ stem: "..." }] }
+                if (info.stems && Array.isArray(info.stems)) {
+                    stemSnippet = info.stems.map(s => s.stem).join(' ');
+                }
+                // Alternative structure: { stem: "..." }
+                else if (info.stem) {
+                    stemSnippet = info.stem;
+                }
+                // Fallback: stringify
+                else {
+                    stemSnippet = JSON.stringify(info);
+                }
+            }
+        } catch (err) {
+            console.error('Error parsing stem for preview:', err);
+            stemSnippet = 'Question Text';
+        }
+
+        // Clean HTML tags and truncate
         stemSnippet = stemSnippet.replace(/<[^>]*>?/gm, '');
         if (stemSnippet.length > 100) stemSnippet = stemSnippet.substring(0, 100) + '...';
 
