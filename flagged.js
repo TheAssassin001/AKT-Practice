@@ -112,7 +112,7 @@ function loadFlaggedQuestions(filter = 'all') {
         console.log('Question IDs to fetch:', questionIds);
 
         // Fetch question details from Supabase
-        fetchFlaggedQuestionDetails(questionIds, allFlagged);
+        fetchFlaggedQuestionDetails(questionIds, allFlagged, filter);
 
     } catch (error) {
         console.error('Error loading flagged questions:', error);
@@ -120,7 +120,7 @@ function loadFlaggedQuestions(filter = 'all') {
     }
 }
 
-async function fetchFlaggedQuestionDetails(questionIds, flaggedData) {
+async function fetchFlaggedQuestionDetails(questionIds, flaggedData, filter = 'all') {
     const container = document.getElementById('flagged-container');
     const noFlaggedDiv = document.getElementById('no-flagged');
     const actionsDiv = document.getElementById('flagged-actions');
@@ -271,7 +271,7 @@ async function fetchFlaggedQuestionDetails(questionIds, flaggedData) {
             }
 
             html += `
-        <div class="question-card" onclick="window.location.href='practice-mixed.html?mode=flagged&new=1&startId=${questionId}'" style="background: #fff; border: 2px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; transition: all 0.2s ease; cursor: pointer; position: relative;">
+        <div class="question-card" onclick="window.location.href='practice-mixed.html?mode=flagged&new=1&startId=${questionId}&filter=${filter}'" style="background: #fff; border: 2px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; transition: all 0.2s ease; cursor: pointer; position: relative;">
           <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
             <div>
               <span style="background: #e3f2fd; color: #1565c0; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; margin-right: 0.5rem;">${codeText}</span>

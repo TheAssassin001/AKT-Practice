@@ -96,6 +96,7 @@ let timerInterval = null;
 let reviewMode = false;
 let currentQuestionCleanup = null;
 let quizCleared = false; // Lock flag to prevent re-saving after clear
+let isFlaggedReview = false;
 
 // Standard Fisher-Yates shuffle
 function shuffleArray(array) {
@@ -405,7 +406,8 @@ async function initializeApp() {
   if (params.get('new') === '1') {
     clearQuizState();
     // Remove 'new' param from URL so refresh restores state instead of resetting again
-    const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "?mode=flagged";
+    params.delete('new');
+    const newUrl = window.location.pathname + '?' + params.toString();
     window.history.replaceState({ path: newUrl }, '', newUrl);
   }
 
@@ -1507,23 +1509,40 @@ function renderQuestion() {
       return;
     }
 
-    const flagKey = getFlaggedKey(quizMode);
-    const flaggedData = JSON.parse(localStorage.getItem(flagKey) || '{}');
+    if (isFlaggedReview) {
+      const pData = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY_PRACTICE) || '{}');
+      const eData = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY_EXAM) || '{}');
 
-    if (currentState.flagged) {
-      // Add to flagged questions
-      flaggedData[questionId] = {
-        status: currentState.status || 'not-attempted',
-        flaggedAt: new Date().toISOString()
-      };
-    } else {
-      // Remove from flagged questions
-      if (flaggedData[questionId]) {
-        delete flaggedData[questionId];
+      if (currentState.flagged) {
+        // Add to practice storage (default behavior for review mode)
+        pData[questionId] = {
+          status: currentState.status || 'not-attempted',
+          flaggedAt: new Date().toISOString()
+        };
+        localStorage.setItem(FLAGGED_QUESTIONS_KEY_PRACTICE, JSON.stringify(pData));
+      } else {
+        // Remove from BOTH storages to ensure it's unflagged everywhere
+        if (pData[questionId]) { delete pData[questionId]; localStorage.setItem(FLAGGED_QUESTIONS_KEY_PRACTICE, JSON.stringify(pData)); }
+        if (eData[questionId]) { delete eData[questionId]; localStorage.setItem(FLAGGED_QUESTIONS_KEY_EXAM, JSON.stringify(eData)); }
       }
-    }
+    } else {
+      const flagKey = getFlaggedKey(quizMode);
+      const flaggedData = JSON.parse(localStorage.getItem(flagKey) || '{}');
 
-    localStorage.setItem(flagKey, JSON.stringify(flaggedData));
+      if (currentState.flagged) {
+        // Add to flagged questions
+        flaggedData[questionId] = {
+          status: currentState.status || 'not-attempted',
+          flaggedAt: new Date().toISOString()
+        };
+      } else {
+        // Remove from flagged questions
+        if (flaggedData[questionId]) {
+          delete flaggedData[questionId];
+        }
+      }
+      localStorage.setItem(flagKey, JSON.stringify(flaggedData));
+    }
     saveQuizState();
     renderQuestion();
   };
@@ -2545,6 +2564,7 @@ function attachMbaHandlers(q) {
 }
 
 function startTest() {
+  isFlaggedReview = false;
   // Filter questions based on selection
   const params = new URLSearchParams(window.location.search);
   const topicParam = params.get('topic');
@@ -2561,14 +2581,22 @@ function startTest() {
     }
   } else if (new URLSearchParams(window.location.search).get('mode') === 'flagged') {
     // Mode: Flagged Questions Review
+    isFlaggedReview = true;
     const practiceFlags = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY_PRACTICE) || '{}');
     const examFlags = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY_EXAM) || '{}');
 
-    // Combine IDs from both practice and exam modes
-    const flaggedIds = new Set([
-      ...Object.keys(practiceFlags),
-      ...Object.keys(examFlags)
-    ]);
+    const filter = new URLSearchParams(window.location.search).get('filter') || 'all';
+
+    // Combine IDs based on filter
+    const flaggedIds = new Set();
+
+
+    if (filter === 'all' || filter === 'practice') {
+      Object.keys(practiceFlags).forEach(id => flaggedIds.add(id));
+    }
+    if (filter === 'all' || filter === 'exam') {
+      Object.keys(examFlags).forEach(id => flaggedIds.add(id));
+    }
 
     if (flaggedIds.size === 0) {
       alert("No flagged questions found.");
@@ -2655,7 +2683,14 @@ function startTest() {
     }
   }
 
-  const storedFlags = JSON.parse(localStorage.getItem(getFlaggedKey(quizMode)) || '{}');
+  let storedFlags;
+  if (isFlaggedReview) {
+    const p = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY_PRACTICE) || '{}');
+    const e = JSON.parse(localStorage.getItem(FLAGGED_QUESTIONS_KEY_EXAM) || '{}');
+    storedFlags = { ...p, ...e };
+  } else {
+    storedFlags = JSON.parse(localStorage.getItem(getFlaggedKey(quizMode)) || '{}');
+  }
 
   questionStates = questions.map(q => {
     const state = {
