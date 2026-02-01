@@ -1,5 +1,7 @@
 import { supabase } from './supabase.js';
 
+let allRevisionGuides = []; // Global storage for filtering
+
 document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
     const guideId = params.get('guide_id');
@@ -34,8 +36,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         // Default - show all guides
         await loadAllGuides();
+        setupSearchHandler();
     }
 });
+
+function setupSearchHandler() {
+    const searchInput = document.getElementById('guide-search');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const filtered = allRevisionGuides.filter(guide =>
+            guide.title.toLowerCase().includes(query) ||
+            (guide.summary && guide.summary.toLowerCase().includes(query))
+        );
+        renderGuidesToGrid(filtered);
+    });
+}
 
 async function loadSpecificGuide(guideId) {
     const staticContent = document.getElementById('static-content');
@@ -238,20 +255,28 @@ async function loadAllGuides() {
 
         if (error) throw error;
 
-        if (!data || data.length === 0) {
-            container.innerHTML = '<div style="grid-column: 1/-1; color: #666; font-style: italic;">No revision guides available yet. Check back soon!</div>';
-            return;
-        }
-
-        container.innerHTML = data.map(guide => `
-            <a href="study.html?guide_id=${guide.id}" class="resource-card" style="text-decoration: none; color: inherit; display: block;">
-                <h3>${guide.title}</h3>
-                <p>${guide.summary || 'Click to read full guide.'}</p>
-            </a>
-        `).join('');
+        allRevisionGuides = data || [];
+        renderGuidesToGrid(allRevisionGuides);
 
     } catch (err) {
         console.error('Error loading guides list:', err);
         container.innerHTML = '<div style="color: #d32f2f;">Failed to load guides. Please try reloading the page.</div>';
     }
+}
+
+function renderGuidesToGrid(guides) {
+    const container = document.getElementById('guides-list');
+    if (!container) return;
+
+    if (!guides || guides.length === 0) {
+        container.innerHTML = '<div style="grid-column: 1/-1; color: #666; font-style: italic; text-align: center; padding: 2rem;">No matching guides found.</div>';
+        return;
+    }
+
+    container.innerHTML = guides.map(guide => `
+        <a href="study.html?guide_id=${guide.id}" class="resource-card" style="text-decoration: none; color: inherit; display: block;">
+            <h3>${guide.title}</h3>
+            <p>${guide.summary || 'Click to read full guide.'}</p>
+        </a>
+    `).join('');
 }
