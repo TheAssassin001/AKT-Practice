@@ -504,6 +504,19 @@ function setupExitBtn() {
     container.style.display = 'block';
   }
 
+  // Update button text for Flagged Mode
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('mode') === 'flagged') {
+    exitBtn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        Back to Flagged
+      `;
+  }
+
+
   exitBtn.onclick = () => {
     if (confirm("Are you sure you want to exit? Your progress will be saved.")) {
       saveQuizState(true); // Immediate save
@@ -515,6 +528,8 @@ function setupExitBtn() {
 
       if (modeParam === 'mock') {
         window.location.href = 'mocks.html';
+      } else if (modeParam === 'flagged') {
+        window.location.href = 'flagged.html';
       } else if (topicParam) {
         // Fix: Don't pass 'mixed' as type to categories.html
         const typeQuery = (selectedType && selectedType !== 'mixed') ? `?type=${selectedType}` : '';
@@ -2587,24 +2602,36 @@ function startTest() {
 
     const filter = new URLSearchParams(window.location.search).get('filter') || 'all';
 
-    // Combine IDs based on filter
-    const flaggedIds = new Set();
-
+    // Combine IDs and Timestamps based on filter
+    const flaggedMap = new Map(); // ID -> timestamp
 
     if (filter === 'all' || filter === 'practice') {
-      Object.keys(practiceFlags).forEach(id => flaggedIds.add(id));
+      Object.keys(practiceFlags).forEach(id => {
+        flaggedMap.set(String(id), practiceFlags[id].flaggedAt);
+      });
     }
     if (filter === 'all' || filter === 'exam') {
-      Object.keys(examFlags).forEach(id => flaggedIds.add(id));
+      Object.keys(examFlags).forEach(id => {
+        if (!flaggedMap.has(String(id))) {
+          flaggedMap.set(String(id), examFlags[id].flaggedAt);
+        }
+      });
     }
 
-    if (flaggedIds.size === 0) {
+    if (flaggedMap.size === 0) {
       alert("No flagged questions found.");
       window.location.href = 'flagged.html';
       return;
     }
 
-    questions = allQuestions.filter(q => flaggedIds.has(q.id));
+    questions = allQuestions.filter(q => flaggedMap.has(String(q.id)));
+
+    // Sort questions chronologically
+    questions.sort((a, b) => {
+      const tA = new Date(flaggedMap.get(String(a.id)) || 0).getTime();
+      const tB = new Date(flaggedMap.get(String(b.id)) || 0).getTime();
+      return tA - tB;
+    });
 
     // If we have flagged questions, set mode to practice (untimed)
     quizMode = 'practice';
@@ -2668,16 +2695,18 @@ function startTest() {
   if (quizMode === 'exam') timeLeft = examDuration;
   else timeLeft = null;
 
-  questions.sort((a, b) => {
-    const codeA = parseInt(a['Question Code']) || 0;
-    const codeB = parseInt(b['Question Code']) || 0;
-    return codeA - codeB;
-  });
+  if (!isFlaggedReview) {
+    questions.sort((a, b) => {
+      const codeA = parseInt(a['Question Code']) || 0;
+      const codeB = parseInt(b['Question Code']) || 0;
+      return codeA - codeB;
+    });
+  }
 
   // Check for startId param to jump to specific question
   const startId = new URLSearchParams(window.location.search).get('startId');
   if (startId) {
-    const startIndex = questions.findIndex(q => q.id === startId);
+    const startIndex = questions.findIndex(q => String(q.id) === startId);
     if (startIndex !== -1) {
       currentQuestion = startIndex;
     }

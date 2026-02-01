@@ -191,86 +191,92 @@ async function fetchFlaggedQuestionDetails(questionIds, flaggedData, filter = 'a
         data.forEach(q => questionMap[q.id] = q);
 
         // Iterate through flaggedData to render each entry
-        Object.keys(flaggedData).forEach(key => {
-            const flagInfo = flaggedData[key];
-            const questionId = flagInfo.originalId || key;
-            const question = questionMap[questionId];
+        Object.keys(flaggedData)
+            .sort((a, b) => {
+                const timeA = new Date(flaggedData[a].flaggedAt || 0).getTime();
+                const timeB = new Date(flaggedData[b].flaggedAt || 0).getTime();
+                return timeA - timeB; // Chronological order
+            })
+            .forEach(key => {
+                const flagInfo = flaggedData[key];
+                const questionId = flagInfo.originalId || key;
+                const question = questionMap[questionId];
 
-            // Skip if question not found
-            if (!question) return;
+                // Skip if question not found
+                if (!question) return;
 
-            const statusColor =
-                flagInfo.status === 'correct' ? '#4caf50' :
-                    flagInfo.status === 'incorrect' ? '#e53935' :
-                        flagInfo.status === 'partial' ? '#ff9800' : '#999';
+                const statusColor =
+                    flagInfo.status === 'correct' ? '#4caf50' :
+                        flagInfo.status === 'incorrect' ? '#e53935' :
+                            flagInfo.status === 'partial' ? '#ff9800' : '#999';
 
-            const statusText =
-                flagInfo.status === 'correct' ? 'Correct' :
-                    flagInfo.status === 'incorrect' ? 'Incorrect' :
-                        flagInfo.status === 'partial' ? 'Partial' : 'Not Attempted';
+                const statusText =
+                    flagInfo.status === 'correct' ? 'Correct' :
+                        flagInfo.status === 'incorrect' ? 'Incorrect' :
+                            flagInfo.status === 'partial' ? 'Partial' : 'Not Attempted';
 
-            const modeBadge = flagInfo.mode === 'exam'
-                ? '<span style="background: #ff9800; color: white; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem;">Mock</span>'
-                : '<span style="background: #4caf50; color: white; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem;">Practice</span>';
+                const modeBadge = flagInfo.mode === 'exam'
+                    ? '<span style="background: #ff9800; color: white; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem;">Mock</span>'
+                    : '<span style="background: #4caf50; color: white; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem;">Practice</span>';
 
-            // Use Question Code exactly as in practice-mixed.js
-            const displayCode = question['Display Code'] || '';
-            const questionCode = question['Question Code'] || '';
-            const codeText = displayCode && questionCode
-                ? `${displayCode} ${questionCode}`
-                : (displayCode || questionCode || '');
+                // Use Question Code exactly as in practice-mixed.js
+                const displayCode = question['Display Code'] || '';
+                const questionCode = question['Question Code'] || '';
+                const codeText = displayCode && questionCode
+                    ? `${displayCode} ${questionCode}`
+                    : (displayCode || questionCode || '');
 
-            // Handle EMQ questions differently - extract first stem text
-            let stemPreview = 'No preview available';
-            if (question.type === 'emq') {
-                // Debug logging
-                console.log('EMQ Question Data:', question);
-                console.log('EMQ stems field:', question.stems);
-                console.log('EMQ stems type:', typeof question.stems);
+                // Handle EMQ questions differently - extract first stem text
+                let stemPreview = 'No preview available';
+                if (question.type === 'emq') {
+                    // Debug logging
+                    console.log('EMQ Question Data:', question);
+                    console.log('EMQ stems field:', question.stems);
+                    console.log('EMQ stems type:', typeof question.stems);
 
-                // Try to parse stems if it's a JSON string
-                try {
-                    let stems = question.stems;
-                    if (typeof stems === 'string') {
-                        stems = JSON.parse(stems);
-                    }
-                    if (Array.isArray(stems) && stems.length > 0) {
-                        const firstStemText = stems[0].stem || stems[0].text || stems[0];
-                        const stemCount = stems.length;
-                        if (typeof firstStemText === 'string') {
-                            stemPreview = firstStemText.length > 120
-                                ? firstStemText.substring(0, 120) + `... (${stemCount} stems total)`
-                                : `${firstStemText} (${stemCount} stems total)`;
-                        } else {
-                            stemPreview = `EMQ Question (${stemCount} stems)`;
+                    // Try to parse stems if it's a JSON string
+                    try {
+                        let stems = question.stems;
+                        if (typeof stems === 'string') {
+                            stems = JSON.parse(stems);
                         }
-                    } else if (question.stem) {
-                        // Fallback to main stem if exists
-                        stemPreview = question.stem.length > 150
-                            ? question.stem.substring(0, 150) + '...'
-                            : question.stem;
-                    } else {
-                        stemPreview = 'EMQ Question (multiple stems)';
+                        if (Array.isArray(stems) && stems.length > 0) {
+                            const firstStemText = stems[0].stem || stems[0].text || stems[0];
+                            const stemCount = stems.length;
+                            if (typeof firstStemText === 'string') {
+                                stemPreview = firstStemText.length > 120
+                                    ? firstStemText.substring(0, 120) + `... (${stemCount} stems total)`
+                                    : `${firstStemText} (${stemCount} stems total)`;
+                            } else {
+                                stemPreview = `EMQ Question (${stemCount} stems)`;
+                            }
+                        } else if (question.stem) {
+                            // Fallback to main stem if exists
+                            stemPreview = question.stem.length > 150
+                                ? question.stem.substring(0, 150) + '...'
+                                : question.stem;
+                        } else {
+                            stemPreview = 'EMQ Question (multiple stems)';
+                        }
+                    } catch (e) {
+                        console.warn('Could not parse EMQ stems:', e);
+                        // Try to use main stem as fallback
+                        if (question.stem && typeof question.stem === 'string') {
+                            stemPreview = question.stem.length > 150
+                                ? question.stem.substring(0, 150) + '...'
+                                : question.stem;
+                        } else {
+                            stemPreview = 'EMQ Question (multiple stems)';
+                        }
                     }
-                } catch (e) {
-                    console.warn('Could not parse EMQ stems:', e);
-                    // Try to use main stem as fallback
-                    if (question.stem && typeof question.stem === 'string') {
-                        stemPreview = question.stem.length > 150
-                            ? question.stem.substring(0, 150) + '...'
-                            : question.stem;
-                    } else {
-                        stemPreview = 'EMQ Question (multiple stems)';
-                    }
+                } else {
+                    // For non-EMQ questions, use stem as before
+                    stemPreview = question.stem ?
+                        (question.stem.length > 150 ? question.stem.substring(0, 150) + '...' : question.stem) :
+                        'No preview available';
                 }
-            } else {
-                // For non-EMQ questions, use stem as before
-                stemPreview = question.stem ?
-                    (question.stem.length > 150 ? question.stem.substring(0, 150) + '...' : question.stem) :
-                    'No preview available';
-            }
 
-            html += `
+                html += `
         <div class="question-card" onclick="window.location.href='practice-mixed.html?mode=flagged&new=1&startId=${questionId}&filter=${filter}'" style="background: #fff; border: 2px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; transition: all 0.2s ease; cursor: pointer; position: relative;">
           <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
             <div>
@@ -292,7 +298,7 @@ async function fetchFlaggedQuestionDetails(questionIds, flaggedData, filter = 'a
           ${question.topic ? `<div style="margin-top: 0.75rem; color: #666; font-size: 0.875rem;"><strong>Topic:</strong> ${question.topic}</div>` : ''}
         </div>
       `;
-        });
+            });
 
         html += '</div>';
         container.innerHTML = html;
