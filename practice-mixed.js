@@ -474,6 +474,15 @@ async function initializeApp() {
     // State was restored
     showToast('Test progress restored');
 
+    // Handle startId even on restored state
+    const startId = params.get('startId');
+    if (startId) {
+      const idx = questions.findIndex(q => String(q.id) === startId);
+      if (idx !== -1) {
+        currentQuestion = idx;
+      }
+    }
+
     // Guard: if timeLeft <= 0 on load, immediately end test, clear state, and show end screen
     if (quizMode === 'exam' && (typeof timeLeft === 'number') && timeLeft <= 0 && !testEnded) {
       clearQuizState();
