@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Questions - AKT Practice</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .search-hero {
+            background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+            color: white;
+            padding: 3rem 1rem;
+            text-align: center;
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 2rem;
+        }
+
+        .search-box-container {
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        #global-search-input {
+            width: 100%;
+            padding: 1.2rem 1.5rem 1.2rem 3.5rem;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            outline: none;
+            transition: transform 0.2s;
+            box-sizing: border-box;
+        }
+
+        #global-search-input:focus {
+            transform: scale(1.02);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1.2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #1565c0;
+            width: 24px;
+            height: 24px;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .result-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            border-left: 5px solid transparent;
+        }
+
+        .result-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border-color: #2563a6;
+        }
+
+        .result-card.sba {
+            border-left-color: #4caf50;
+        }
+
+        .result-card.emq {
+            border-left-color: #ff9800;
+        }
+
+        .result-card.mba {
+            border-left-color: #9c27b0;
+        }
+
+        .result-card.numeric {
+            border-left-color: #2196f3;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1565c0;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <h1>AKT Practice</h1>
+            <nav>
+                <ul class="nav-list">
+                    <li><a href="index.html">Home</a></li>
+                    <li class="dropdown">
+                        <a href="practice.html" class="active">Practice <span class="nav-arrow">▼</span></a>
+                        <div class="dropdown-content">
+                            <a href="search.html" class="active">Search Questions</a>
+                            <a href="categories.html">Practice by category</a>
+                            <a href="mocks.html">Mock Exam</a>
+                            <a href="flagged.html">View Flagged</a>
+                        </div>
+                    </li>
+                    <li class="dropdown">
+                        <a href="study.html">Study <span class="nav-arrow">▼</span></a>
+                        <div class="dropdown-content">
+                            <a href="study.html#guides">Revision Guides</a>
+                            <a href="study.html#resources">Quick References</a>
+                        </div>
+                    </li>
+                    <li><a href="about.html">About</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="search-hero">
+        <div class="container">
+            <h2 style="margin-bottom: 1.5rem;">One Search. Every Question.</h2>
+            <div class="search-box-container">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="global-search-input"
+                    placeholder="Search by code (Q123), keyword, or option text...">
+            </div>
+            <p style="margin-top: 1rem; opacity: 0.9;">Excludes explanations to keep your revision spoiler-free.</p>
+        </div>
+    </div>
+
+    <main class="container" style="min-height: 60vh;">
+        <div id="status-message" style="text-align: center; color: #666; margin-top: 2rem;">
+            Loading question bank...
+        </div>
+
+        <div id="results-container" class="results-grid"></div>
+
+        <div id="load-more-trigger" style="text-align: center; margin: 2rem 0; display: none;">
+            <button class="cta-btn" style="background: #eee; color: #333;">Load More Results</button>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <small class="muted">For academic use only. &copy; 2026 AKT Practice Platform</small>
+        </div>
+    </footer>
+
+    <script type="module" src="search.js"></script>
+</body>
+
+</html>

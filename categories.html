@@ -143,7 +143,26 @@
                 topics. Timed mode is disabled for category practice.</p>
 
             <div id="category-container" class="category-grid">
-                <div class="loading-container">Loading clinical categories...</div>
+                <div class="loading-container">Loading categories...</div>
+            </div>
+
+            <!-- Search Section at Bottom -->
+            <div style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid #eee;">
+                <h3 style="color: #1565c0; text-align: center; margin-bottom: 1.5rem;">Search All Questions</h3>
+                <div class="search-container" style="position: relative; max-width: 500px; margin: 0 auto 2rem auto;">
+                    <input type="text" id="question-search" placeholder="Search by code (Q123), keyword, or option..."
+                        style="width: 100%; padding: 1rem 1.2rem 1rem 3rem; border: 2px solid #e0e0e0; border-radius: 50px; font-size: 1rem; outline: none; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    <svg style="position: absolute; left: 1.2rem; top: 50%; transform: translateY(-50%); color: #1565c0;"
+                        width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </div>
+
+                <div id="search-results" class="category-grid" style="display: none;">
+                    <!-- Search results will appear here -->
+                </div>
             </div>
         </section>
     </main>
