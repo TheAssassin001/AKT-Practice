@@ -1608,6 +1608,7 @@ function renderQuestion() {
       }
       saveQuizState(); // <--- Save immediately after answer
       updateFlaggedQuestionStatus(questions[currentQuestion].id, questionStates[currentQuestion].status); // Sync flag status
+      updateQuestionHistory(questions[currentQuestion].id, questionStates[currentQuestion].status); // Sync history
       renderStatusPanel();
       const input = document.getElementById('numeric-answer');
       input.disabled = true;
@@ -2176,6 +2177,7 @@ function attachSbaHandlers(q) {
     }
     saveQuizState(); // <--- Save immediately after answer
     updateFlaggedQuestionStatus(questions[currentQuestion].id, questionStates[currentQuestion].status); // Sync flag status
+    updateQuestionHistory(questions[currentQuestion].id, questionStates[currentQuestion].status); // Sync history
     renderStatusPanel();
 
     // Visual feedback animation
@@ -2375,6 +2377,7 @@ function attachEmqDropdownHandlers(q) {
     }
     saveQuizState(); // <--- Save immediately after answer
     updateFlaggedQuestionStatus(questions[currentQuestion].id, questionStates[currentQuestion].status); // Sync flag status
+    updateQuestionHistory(questions[currentQuestion].id, questionStates[currentQuestion].status); // Sync history
     renderStatusPanel();
     explanationBox.innerHTML = feedbackHtml;
     explanationBox.style.display = 'block';
@@ -2470,6 +2473,7 @@ function attachMbaHandlers(q) {
 
     saveQuizState(true); // Immediate save
     updateFlaggedQuestionStatus(questions[currentQuestion].id, questionStates[currentQuestion].status); // Sync flag status
+    updateQuestionHistory(questions[currentQuestion].id, questionStates[currentQuestion].status); // Sync history
     renderStatusPanel();
 
     // Visual feedback animation
@@ -2578,6 +2582,23 @@ function attachMbaHandlers(q) {
   form.addEventListener('submit', () => { setTimeout(cleanup, 100); currentQuestionCleanup = null; }, { once: true });
 }
 
+const QUESTION_HISTORY_KEY = 'akt-question-history';
+
+function updateQuestionHistory(questionId, status) {
+  if (!questionId) return;
+  try {
+    const history = JSON.parse(localStorage.getItem(QUESTION_HISTORY_KEY) || '{}');
+    history[questionId] = {
+      status,
+      timestamp: new Date().toISOString()
+    };
+    localStorage.setItem(QUESTION_HISTORY_KEY, JSON.stringify(history));
+  } catch (e) {
+    console.error('Error saving question history:', e);
+  }
+}
+
+
 function startTest() {
   isFlaggedReview = false;
   // Filter questions based on selection
@@ -2680,7 +2701,7 @@ function startTest() {
   totalPossible = 0;
   currentQuestion = 0;
   testEnded = false;
-  // quizCleared reset moved to end of function
+  quizCleared = false; // Reset the save lock for the new session
   testEnded = false;
 
   // Check for study mode again to ensure reviewMode is set correctly

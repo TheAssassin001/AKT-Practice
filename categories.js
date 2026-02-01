@@ -2,42 +2,31 @@ import { supabase } from './supabase.js';
 
 async function initCategories() {
     const container = document.getElementById('category-container');
-    const params = new URLSearchParams(window.location.search);
-    const typeParam = params.get('type'); // 'sba' or 'emq'
-
-    // Update header if type is present
-    if (typeParam) {
-        const titleEl = document.querySelector('h2');
-        const pEl = document.querySelector('section > p');
-        if (titleEl) {
-            titleEl.textContent = typeParam === 'sba' ? 'SBA Categories' :
-                typeParam === 'emq' ? 'EMQ Categories' : 'Practice by Category';
-        }
-        if (pEl) {
-            pEl.textContent = typeParam === 'sba' ? 'Master Single Best Answer questions by topic.' :
-                typeParam === 'emq' ? 'Challenge yourself with Extended Matching Questions.' :
-                    pEl.textContent;
-        }
-    }
+    const urlParams = new URLSearchParams(window.location.search);
+    const typeParam = urlParams.get('type'); // 'sba', 'emq', 'mixed'
 
     try {
         // 1. Fetch all questions
-        // We select more fields because we might need to filter by type client-side 
+        // We fetch minimal data to calculate counts on the client
         // (or we can do it in the query if we wanted, but client-side is fine for current scale)
         const { data, error } = await supabase
             .from('questions')
-            .select('Category, type');
+            .select('id, Category, type');
 
         if (error) throw error;
 
+        // Group by Topic
         // aggregation: { topic: { total: X, answered: Y, flagged: Z } }
         const topics = {};
 
-        // 2. Get user progress from localStorage
-        const savedState = JSON.parse(localStorage.getItem("quizStateV3") || "{}");
-        const answeredStates = savedState.questionStates || [];
+        // 2. Get user progress
+        const questionHistory = JSON.parse(localStorage.getItem("akt-question-history") || "{}");
 
-        data.forEach((q, idx) => {
+        // Use the same keys as practice-mixed.js and flagged.js
+        const practiceFlags = JSON.parse(localStorage.getItem("akt-flagged-questions-practice") || "{}");
+        const examFlags = JSON.parse(localStorage.getItem("akt-flagged-questions-exam") || "{}");
+
+        data.forEach((q) => {
             // Filter by type if param exists
             if (typeParam && q.type !== typeParam) return;
 
@@ -47,11 +36,14 @@ async function initCategories() {
             }
             topics[topic].total++;
 
-            const state = answeredStates[idx];
-            if (state && state.status !== 'not-attempted') {
+            // Check history
+            if (questionHistory[q.id] && questionHistory[q.id].status !== 'not-attempted') {
                 topics[topic].completed++;
             }
-            if (state && state.flagged) {
+
+            // Check flags
+            const qIdStr = String(q.id);
+            if (practiceFlags[qIdStr] || examFlags[qIdStr]) {
                 topics[topic].flagged++;
             }
         });
@@ -65,12 +57,85 @@ async function initCategories() {
 
         container.innerHTML = sortedTopics.map(topic => {
             const typeQuery = typeParam ? `&type=${typeParam}` : '';
+            const t = topics[topic];
+            // Calculation exactly as requested: completed / total * 100
+            const percent = t.total > 0 ? Math.round((t.completed / t.total) * 100) : 0;
+
             return `
-                <a href="practice-mixed.html?topic=${encodeURIComponent(topic)}${typeQuery}" class="category-card">
-                    <h3>${topic}</h3>
-                </a>
+                <div style="position: relative;">
+                    <a href="practice-mixed.html?topic=${encodeURIComponent(topic)}${typeQuery}" class="category-card">
+                        <div style="width:100%">
+                            <h3>${topic}</h3>
+                            
+                            <div class="progress-section" style="margin-top: 1rem; margin-bottom:0.8rem;">
+                                <div style="background:#e9ecef; height:8px; border-radius:4px; overflow:hidden;">
+                                    <div style="background:#4caf50; width:${percent}%; height:100%; transition: width 0.5s ease-out;"></div>
+                                </div>
+                                <div style="text-align:right; font-size:0.85rem; color:#666; margin-top:0.3rem; font-weight:600;">
+                                    ${percent}%
+                                </div>
+                            </div>
+
+                            <div style="font-size:0.9rem; color:#555; display:flex; flex-direction:column; gap:0.3rem;">
+                                <div>${t.completed} questions out of ${t.total} completed</div>
+                                ${t.flagged > 0 ? `<div style="color:#d32f2f; font-weight:600; display:flex; align-items:center; gap:6px;">
+                                    <span style="font-size:1.2em; line-height:1;">&#9873;</span> ${t.flagged} flagged
+                                </div>` : ''}
+                            </div>
+                        </div>
+                    </a>
+                    ${t.completed > 0 ? `
+                    <button class="reset-btn" data-topic="${topic}" title="Clear progress for this category">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        Reset
+                    </button>` : ''}
+                </div>
             `;
         }).join('');
+
+        // Attach event listeners for reset buttons
+        container.querySelectorAll('.reset-btn').forEach(btn => {
+            btn.onclick = async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const topic = btn.dataset.topic;
+
+                if (confirm(`Are you sure you want to clear your progress for "${topic}"? This cannot be undone.`)) {
+                    const questionHistory = JSON.parse(localStorage.getItem("akt-question-history") || "{}");
+
+                    // Filter data for this topic
+                    const topicQuestionIds = data
+                        .filter(q => (q.Category || 'General') === topic)
+                        .map(q => String(q.id));
+
+                    // Remove from history
+                    topicQuestionIds.forEach(id => {
+                        delete questionHistory[id];
+                    });
+
+                    localStorage.setItem("akt-question-history", JSON.stringify(questionHistory));
+
+                    // Reset saved test session if it matches this category
+                    const quizStateRaw = localStorage.getItem("quizStateV3");
+                    if (quizStateRaw) {
+                        try {
+                            const quizState = JSON.parse(quizStateRaw);
+                            if (quizState.selectedCategory === topic) {
+                                localStorage.removeItem("quizStateV3");
+                                console.log(`Cleared saved test session for "${topic}"`);
+                            }
+                        } catch (e) {
+                            console.error('Error parsing quiz state during reset:', e);
+                        }
+                    }
+
+                    // Re-initialize view
+                    initCategories();
+                }
+            };
+        });
 
     } catch (err) {
         console.error('Error loading categories:', err);
