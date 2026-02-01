@@ -22,9 +22,8 @@ async function initCategories() {
         // 2. Get user progress
         const questionHistory = JSON.parse(localStorage.getItem("akt-question-history") || "{}");
 
-        // Use the same keys as practice-mixed.js and flagged.js
+        // Use only the practice flag key as requested
         const practiceFlags = JSON.parse(localStorage.getItem("akt-flagged-questions-practice") || "{}");
-        const examFlags = JSON.parse(localStorage.getItem("akt-flagged-questions-exam") || "{}");
 
         data.forEach((q) => {
             // Filter by type if param exists
@@ -32,7 +31,7 @@ async function initCategories() {
 
             const topic = q.Category || 'General';
             if (!topics[topic]) {
-                topics[topic] = { total: 0, completed: 0, practiceFlagged: 0, examFlagged: 0 };
+                topics[topic] = { total: 0, completed: 0, practiceFlagged: 0 };
             }
             topics[topic].total++;
 
@@ -45,9 +44,6 @@ async function initCategories() {
             const qIdStr = String(q.id);
             if (practiceFlags[qIdStr]) {
                 topics[topic].practiceFlagged++;
-            }
-            if (examFlags[qIdStr]) {
-                topics[topic].examFlagged++;
             }
         });
 
@@ -85,12 +81,7 @@ async function initCategories() {
                                 <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.2rem;">
                                     ${t.practiceFlagged > 0 ? `
                                     <div style="color:#2e7d32; font-weight:600; font-size:0.85rem; display:flex; align-items:center; gap:4px; background:#e8f5e9; padding:2px 8px; border-radius:12px;">
-                                        <span style="font-size:1.1em; line-height:1;">&#9873;</span> ${t.practiceFlagged} Practice
-                                    </div>` : ''}
-                                    
-                                    ${t.examFlagged > 0 ? `
-                                    <div style="color:#d32f2f; font-weight:600; font-size:0.85rem; display:flex; align-items:center; gap:4px; background:#ffebee; padding:2px 8px; border-radius:12px;">
-                                        <span style="font-size:1.1em; line-height:1;">&#9873;</span> ${t.examFlagged} Mock
+                                        <span style="font-size:1.1em; line-height:1;">&#9873;</span> ${t.practiceFlagged} Practice Flags
                                     </div>` : ''}
                                 </div>
                             </div>
