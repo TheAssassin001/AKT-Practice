@@ -11,7 +11,7 @@ async function initCategories() {
         // (or we can do it in the query if we wanted, but client-side is fine for current scale)
         const { data, error } = await supabase
             .from('questions')
-            .select('id, Category, type');
+            .select('*'); // Initial load: fetch all columns for search capability
 
         if (error) throw error;
 
@@ -140,9 +140,99 @@ async function initCategories() {
             };
         });
 
+
+
+        // 3. Setup Search Handler (At bottom of page)
+        setupQuestionSearch(data);
+
     } catch (err) {
         console.error('Error loading categories:', err);
-        container.innerHTML = '<div style="text-align:center; padding: 2rem; color: #d32f2f;">Failed to load categories. Please try again.</div>';
+        container.innerHTML = '<div style="color: #d32f2f;">Failed to load categories. Please refresh the page.</div>';
+    }
+}
+
+function setupQuestionSearch(allQuestions) {
+    const searchInput = document.getElementById('question-search');
+    const resultsContainer = document.getElementById('search-results');
+    // Note: We do NOT hide category-container anymore, as requested search is at bottom.
+    // We strictly show results in the results container.
+
+    if (!searchInput || !resultsContainer) return;
+
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+
+        if (!query) {
+            resultsContainer.style.display = 'none';
+            resultsContainer.innerHTML = '';
+            return;
+        }
+
+        resultsContainer.style.display = 'grid';
+
+        // Filter Logic (Robust)
+        const filtered = allQuestions.filter(q => {
+            // 1. Code Match
+            const qCode = String(q['Question Code'] || '').toLowerCase();
+            const dCode = String(q['Display Code'] || '').toLowerCase();
+            const idCode = String(q.id).toLowerCase();
+
+            if (qCode.includes(query) || dCode.includes(query) || idCode === query || ('q' + idCode) === query) return true;
+
+            // 2. Stem/Body Match
+            const stemText = typeof q.stem === 'string' ? q.stem.toLowerCase() : JSON.stringify(q.stem || '').toLowerCase();
+            if (stemText.includes(query)) return true;
+
+            // 3. Options Match
+            const optionsText = typeof q.options === 'string' ? q.options.toLowerCase() : JSON.stringify(q.options || '').toLowerCase();
+            if (optionsText.includes(query)) return true;
+
+            return false;
+        });
+
+        if (filtered.length === 0) {
+            resultsContainer.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #666; padding: 2rem;">No questions found matching "${e.target.value}".</div>`;
+            return;
+        }
+
+        renderSearchResults(filtered, resultsContainer);
+    });
+}
+
+function renderSearchResults(questions, container) {
+    const displayLimit = 50;
+    const subset = questions.slice(0, displayLimit);
+
+    container.innerHTML = subset.map(q => {
+        let stemSnippet = typeof q.stem === 'string' ? q.stem : 'Question Text';
+        stemSnippet = stemSnippet.replace(/<[^>]*>?/gm, '');
+        if (stemSnippet.length > 100) stemSnippet = stemSnippet.substring(0, 100) + '...';
+
+        const code = q['Question Code'] || q['Display Code'] || `Q${q.id}`;
+        const category = q.Category || 'General';
+
+        return `
+            <a href="practice-mixed.html?mode=practice&startId=${q.id}&topic=${encodeURIComponent(category)}" 
+               class="category-card" style="border-left-color: #ff9800; min-height: auto;">
+                <div style="width:100%">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
+                        <span style="font-weight:700; color:#e65100; font-size:0.9rem;">${code}</span>
+                        <span style="font-size:0.8rem; background:#f5f5f5; padding:2px 6px; border-radius:4px; color:#666;">${q.type ? q.type.toUpperCase() : 'Q'}</span>
+                    </div>
+                    
+                    <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem; color: #333;">${category}</h4>
+                    <p style="font-size: 0.9rem; color: #555; margin: 0; line-height: 1.4;">${stemSnippet}</p>
+                </div>
+            </a>
+        `;
+    }).join('');
+
+    if (questions.length > displayLimit) {
+        container.innerHTML += `
+            <div style="grid-column: 1/-1; text-align: center; margin-top: 1rem; color: #666;">
+                And ${questions.length - displayLimit} more matches. Refine your search.
+            </div>
+        `;
     }
 }
 
