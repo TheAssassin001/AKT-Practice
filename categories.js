@@ -170,42 +170,44 @@ function setupQuestionSearch(allQuestions) {
 
         resultsContainer.style.display = 'grid';
 
-        // Filter Logic (Robust)
-        const filtered = allQuestions.filter(q => {
-            // 1. Code Match
+        // Filter and Score Logic for Ranking
+        const scoredResults = allQuestions.map(q => {
+            let score = 0;
             const qCode = String(q['Question Code'] || '').toLowerCase();
-            // Also check lowercase display_code just in case
             const dCode = String(q['Display Code'] || q['display_code'] || '').toLowerCase();
-            const idCode = String(q.id).toLowerCase();
+            const idStr = String(q.id).toLowerCase();
 
-            // Direct match
-            if (qCode.includes(query) || dCode.includes(query) || idCode === query || ('q' + idCode) === query) return true;
+            // 1. Primary Code Match (High Priority)
+            if (dCode === query || qCode === query) score = 100;
+            else if (dCode.includes(query) || qCode.includes(query)) score = 80;
+            else if (idStr === query || ('q' + idStr) === query) score = 70;
 
-            // Prefix Stripping for "CR 1002" -> "1002"
-            // Generalized approach: Extract the first sequence of numbers found in the query.
-            // This handles ANY prefix: "SBA 123", "EMQ 1002", "FOO 5", "Q123"
+            // 2. Numeric Match (Medium Priority)
             const numberMatch = query.match(/\d+/);
-            const codeQuery = numberMatch ? numberMatch[0] : '';
-
-            if (codeQuery !== query && codeQuery.length > 0) {
-                // Universal Match: Check EVERYTHING. 
-                // Convert the whole question to a lowercase string.
-                // If "100" is in the object anywhere (ID, code, custom_field), find it.
-                // This bypasses any column naming mismatches (e.g. Question Code vs question_code).
-                const allText = JSON.stringify(q).toLowerCase();
-                if (allText.includes(codeQuery)) return true;
+            const numQuery = numberMatch ? numberMatch[0] : '';
+            if (numQuery && numQuery.length > 0) {
+                if (idStr === numQuery || dCode.includes(numQuery) || qCode.includes(numQuery)) {
+                    score = Math.max(score, 60);
+                } else {
+                    // Universal numeric check
+                    const allText = JSON.stringify(q).toLowerCase();
+                    if (allText.includes(numQuery)) score = Math.max(score, 30);
+                }
             }
 
-            // 2. Stem/Body Match
+            // 3. Content Match (Lower Priority)
             const stemText = typeof q.stem === 'string' ? q.stem.toLowerCase() : JSON.stringify(q.stem || '').toLowerCase();
-            if (stemText.includes(query)) return true;
-
-            // 3. Options Match
             const optionsText = typeof q.options === 'string' ? q.options.toLowerCase() : JSON.stringify(q.options || '').toLowerCase();
-            if (optionsText.includes(query)) return true;
 
-            return false;
-        });
+            if (stemText.includes(query)) score = Math.max(score, 40);
+            if (optionsText.includes(query)) score = Math.max(score, 20);
+
+            return { question: q, score: score };
+        }).filter(item => item.score > 0);
+
+        // Sort by score descending
+        scoredResults.sort((a, b) => b.score - a.score);
+        const filtered = scoredResults.map(item => item.question);
 
         if (filtered.length === 0) {
             resultsContainer.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #666; padding: 2rem;">No questions found matching "${e.target.value}".</div>`;
