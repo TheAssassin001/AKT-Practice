@@ -80,7 +80,7 @@ async function initCategories() {
                                 
                                 <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.2rem;">
                                     ${t.practiceFlagged > 0 ? `
-                                    <div style="color:#2e7d32; font-weight:600; font-size:0.85rem; display:flex; align-items:center; gap:4px; background:#e8f5e9; padding:2px 8px; border-radius:12px;">
+                                    <div style="color:#d32f2f; font-weight:600; font-size:0.85rem; display:flex; align-items:center; gap:4px; background:#ffebee; padding:2px 8px; border-radius:12px;">
                                         <span style="font-size:1.1em; line-height:1;">&#9873;</span> ${t.practiceFlagged} Practice Flags
                                     </div>` : ''}
                                 </div>
