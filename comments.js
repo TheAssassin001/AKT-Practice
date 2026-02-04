@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js';
+import { sanitizeHTML, escapeHTML } from './utils.js';
 
 async function initCommentsPage() {
     const container = document.getElementById('comments-container');
@@ -65,19 +66,19 @@ async function initCommentsPage() {
             card.className = 'comment-summary-card';
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 700; color: #2563a6;">${q['Question Code'] || 'Question ' + q.id}</span>
+                    <span style="font-weight: 700; color: #2563a6;">${escapeHTML(q['Question Code'] || 'Question ' + q.id)}</span>
                     <span class="comment-count-badge">${stats.count} comment${stats.count !== 1 ? 's' : ''}</span>
                 </div>
                 
                 <div class="question-snippet">
-                    ${q.stem || '(No question text available)'}
+                    ${sanitizeHTML(q.stem || '(No question text available)')}
                 </div>
 
                 <div class="latest-comment">
                     <div style="font-weight: 600; font-size: 0.75rem; margin-bottom: 2px;">
-                        ${latest.user_name || 'Anonymous'} • ${date}
+                        ${escapeHTML(latest.user_name || 'Anonymous')} • ${escapeHTML(date)}
                     </div>
-                    "${latest.comment_text}"
+                    "${escapeHTML(latest.comment_text)}"
                 </div>
             `;
             container.appendChild(card);

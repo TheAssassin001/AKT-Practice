@@ -76,6 +76,7 @@ async function reloadQuestions() {
 // All question data is loaded from Supabase and normalized here.
 // Backend changes to data structure do NOT affect frontend exam behaviour logic.
 import { supabase } from './supabase.js';
+import { sanitizeHTML, escapeHTML, stripHTML } from './utils.js';
 
 let allQuestions = [];
 let questions = [];
@@ -1006,8 +1007,8 @@ function renderQuestion() {
     <div class="question-header">
       <span class="question-counter" style="color: #1565c0; font-weight: bold; font-size: 1.1rem;">${questionCounter}</span>
       ${flagBtn}
-      ${categoryName ? `<span class="question-category" style="color: #1565c0; font-weight: bold; font-size: 1rem; margin-left: 0.8rem; border-left: 2px solid #e0e0e0; padding-left: 0.8rem;">${categoryName}</span>` : ''}
-      ${codeText ? `<span class="question-codes" style="color: #1565c0; font-size: 0.85rem; margin-left: 0.8rem;">${codeText}</span>` : ''}
+      ${categoryName ? `<span class="question-category" style="color: #1565c0; font-weight: bold; font-size: 1rem; margin-left: 0.8rem; border-left: 2px solid #e0e0e0; padding-left: 0.8rem;">${escapeHTML(categoryName)}</span>` : ''}
+      ${codeText ? `<span class="question-codes" style="color: #1565c0; font-size: 0.85rem; margin-left: 0.8rem;">${escapeHTML(codeText)}</span>` : ''}
       
       <div class="nav-arrows">
           <button id="nav-prev" title="Previous Question (Left Arrow)" aria-label="Previous Question">❮</button>
@@ -1032,13 +1033,13 @@ function renderQuestion() {
       ${renderQuestionImage(q.images)}
       <form class="question-form" id="mcq-form" aria-label="Single best answer question">
         <fieldset id="mcq-fieldset">
-          <legend>${q.stem}</legend>
+          <legend>${sanitizeHTML(q.stem)}</legend>
           ${(questionStates[currentQuestion].shuffledOptions || q.options).map((opt, i) => {
       const isStruck = questionStates[currentQuestion].struckOutOptions?.includes(i);
       return `
             <div class="option ${isStruck ? 'struck-out' : ''}" data-idx="${i}">
               <input type="radio" id="option${i + 1}" name="answer" value="${i}"${saved !== null && parseInt(saved) === i ? ' checked' : ''}>
-              <label for="option${i + 1}">${String.fromCharCode(65 + i)}. ${opt}</label>
+              <label for="option${i + 1}">${String.fromCharCode(65 + i)}. ${sanitizeHTML(opt)}</label>
             </div>
           `}).join('')}
         </fieldset>
@@ -1212,17 +1213,17 @@ function renderQuestion() {
       <div class="emq-options-box">
         <strong>Options:</strong>
         <div class="emq-options-list">
-          ${q.options.map((opt, i) => `<div class="emq-option-item"><strong>${String.fromCharCode(65 + i)}.</strong> ${opt}</div>`).join('')}
+          ${q.options.map((opt, i) => `<div class="emq-option-item"><strong>${String.fromCharCode(65 + i)}.</strong> ${sanitizeHTML(opt)}</div>`).join('')}
         </div>
       </div>
       <form class="question-form" id="emq-form" aria-label="Extended matching question">
         <fieldset id="emq-fieldset">
           ${q.stems.map((stemObj, idx) => `
             <div class="emq-stem-block">
-              <legend>${stemObj.stem}</legend>
+              <legend>${sanitizeHTML(stemObj.stem)}</legend>
               <select name="answer${idx}" id="emq-answer-${idx}" aria-label="Answer for stem ${idx + 1}">
                 <option value="">Select an answer</option>
-                ${(questionStates[currentQuestion].shuffledOptions || q.options).map((opt, i) => `<option value="${i}"${saved && saved[idx] !== null && parseInt(saved[idx]) === i ? ' selected' : ''}>${String.fromCharCode(65 + i)}. ${opt}</option>`).join('')}
+                ${(questionStates[currentQuestion].shuffledOptions || q.options).map((opt, i) => `<option value="${i}"${saved && saved[idx] !== null && parseInt(saved[idx]) === i ? ' selected' : ''}>${String.fromCharCode(65 + i)}. ${sanitizeHTML(opt)}</option>`).join('')}
               </select>
             </div>
           `).join('')}
@@ -1315,7 +1316,7 @@ function renderQuestion() {
       ${renderQuestionImage(q.images)}
       <form class="question-form" id="numeric-form">
         <fieldset id="numeric-fieldset">
-          <legend>${q.stem}</legend>
+          <legend>${sanitizeHTML(q.stem)}</legend>
           <input type="number" id="numeric-answer" name="numeric-answer" step="any" required value="${numericSaved !== null && numericSaved !== undefined ? numericSaved : ''}" style="width:8em;">
           ${q.unit ? `<span class="numeric-unit">${q.unit}</span>` : ''}
         </fieldset>
@@ -1394,7 +1395,7 @@ function renderQuestion() {
       ${renderQuestionImage(q.images)}
       <form class="question-form" id="mba-form" aria-label="Multiple best answer question">
         <fieldset id="mba-fieldset">
-          <legend>${q.stem}</legend>
+          <legend>${sanitizeHTML(q.stem)}</legend>
           <div class="mba-instruction" style="background: #e3f2fd; padding: 0.8rem 1rem; border-radius: 6px; margin-bottom: 1rem; color: #1565c0; font-weight: 500;">
             Select all correct answers
             <span id="mba-counter" style="float: right; font-weight: 700;">0 selected</span>
@@ -1404,7 +1405,7 @@ function renderQuestion() {
       return `
             <div class="option mba-option" data-idx="${i}">
               <input type="checkbox" id="mba-option${i + 1}" name="answer" value="${i}"${isChecked ? ' checked' : ''}>
-              <label for="mba-option${i + 1}">${String.fromCharCode(65 + i)}. ${opt}</label>
+              <label for="mba-option${i + 1}">${String.fromCharCode(65 + i)}. ${sanitizeHTML(opt)}</label>
             </div>
           `}).join('')}
         </fieldset>
@@ -1447,7 +1448,7 @@ function renderQuestion() {
 
       // Show explanation
       const correctLabels = correctIndices.map(i => String.fromCharCode(65 + i)).join(', ');
-      const correctTexts = correctIndices.map(i => q.options[i]).join('; ');
+      const correctTexts = correctIndices.map(i => sanitizeHTML(q.options[i])).join('; ');
 
       explanationBox.innerHTML = renderExplanation({
         isCorrect,
@@ -2156,24 +2157,24 @@ function renderExplanation({
   // Generate revision guides HTML immediately if data exists
   const guidesHtml = (revisionGuides && revisionGuides.length > 0)
     ? revisionGuides.map(g => `
-        <a href="study.html?guide_id=${g.id}" class="revision-guide-btn" 
+        <a href="study.html?guide_id=${escapeHTML(g.id)}" class="revision-guide-btn" 
            style="display: inline-flex; align-items: center; gap: 6px; margin: 4px 8px 4px 0; padding: 6px 12px; background: #e8f5e9; color: #2e7d32; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 0.9em; border: 1px solid #c8e6c9;">
            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
            </svg>
-           ${g.title}
+           ${escapeHTML(g.title)}
         </a>`).join('')
     : '<!-- Revision guides will be injected here if fetched later -->';
 
   return `
     <span class="${isCorrect ? 'correct' : 'incorrect'}">${isCorrect ? 'Correct' : 'Incorrect'}</span>
-    <div class="correct-answer"><strong>Correct answer:</strong> ${correctLabel}. ${correctText}</div>
-    <div class="explanation-text"><strong>Explanation:</strong> ${explanation}</div>
+    <div class="correct-answer"><strong>Correct answer:</strong> ${escapeHTML(correctLabel)}. ${sanitizeHTML(correctText)}</div>
+    <div class="explanation-text"><strong>Explanation:</strong> ${sanitizeHTML(explanation)}</div>
     <div class="further-reading">
       <strong>Further Reading:</strong>
       <ul class="reading-links">
-        ${furtherReading.map(link => `<li><a href="${link.url}" target="_blank" rel="noopener">${link.text}</a></li>`).join('')}
+        ${furtherReading.map(link => `<li><a href="${escapeHTML(link.url)}" target="_blank" rel="noopener">${escapeHTML(link.text)}</a></li>`).join('')}
       </ul>
     </div>
     <div id="revision-guides-section-${new Date().getTime()}" class="revision-guides-section" style="margin-top: 10px;">

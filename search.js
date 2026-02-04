@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js';
+import { sanitizeHTML, escapeHTML, stripHTML } from './utils.js';
 
 let allQuestionsCache = [];
 let currentResults = [];
@@ -73,7 +74,7 @@ function handleSearch(e) {
     if (currentResults.length === 0) {
         container.innerHTML = '';
         statusMsg.style.display = 'block';
-        statusMsg.innerHTML = `No matches found for "<strong>${e.target.value}</strong>"`;
+        statusMsg.innerHTML = `No matches found for "<strong>${escapeHTML(e.target.value)}</strong>"`;
         loadMoreBtn.style.display = 'none';
         return;
     }
@@ -100,18 +101,18 @@ function renderBatch() {
 
         // Snippet
         let stemSnippet = typeof q.stem === 'string' ? q.stem : 'Question Text';
-        stemSnippet = stemSnippet.replace(/<[^>]*>?/gm, ''); // Strip HTML
+        stemSnippet = stripHTML(stemSnippet); // Use utility function to strip HTML
         if (stemSnippet.length > 150) stemSnippet = stemSnippet.substring(0, 150) + '...';
 
         return `
             <a href="practice-mixed.html?mode=practice&startId=${q.id}&topic=${encodeURIComponent(category)}" 
-               class="result-card ${type}">
+               class="result-card ${escapeHTML(type)}">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-                    <span style="font-weight: 700; color: #1565c0;">${code}</span>
-                    <span style="font-size: 0.75rem; text-transform: uppercase; background: #f5f5f5; padding: 2px 6px; border-radius: 4px; color: #666;">${type}</span>
+                    <span style="font-weight: 700; color: #1565c0;">${escapeHTML(code)}</span>
+                    <span style="font-size: 0.75rem; text-transform: uppercase; background: #f5f5f5; padding: 2px 6px; border-radius: 4px; color: #666;">${escapeHTML(type)}</span>
                 </div>
-                <h4 style="margin: 0 0 0.5rem 0; color: #333; font-size: 1rem;">${category}</h4>
-                <p style="margin: 0; color: #666; font-size: 0.9rem; line-height: 1.5;">${stemSnippet}</p>
+                <h4 style="margin: 0 0 0.5rem 0; color: #333; font-size: 1rem;">${escapeHTML(category)}</h4>
+                <p style="margin: 0; color: #666; font-size: 0.9rem; line-height: 1.5;">${escapeHTML(stemSnippet)}</p>
             </a>
         `;
     }).join('');

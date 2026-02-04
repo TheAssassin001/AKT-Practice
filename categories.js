@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js';
+import { sanitizeHTML, escapeHTML, stripHTML } from './utils.js';
 
 async function initCategories() {
     const container = document.getElementById('category-container');
@@ -50,12 +51,12 @@ async function initCategories() {
         const sortedTopics = Object.keys(topics).sort();
 
         if (sortedTopics.length === 0) {
-            container.innerHTML = `<div style="text-align:center; padding: 2rem;">No ${typeParam ? typeParam.toUpperCase() + ' ' : ''}questions found.</div>`;
+            container.innerHTML = `<div style="text-align:center; padding: 2rem;">No ${typeParam ? escapeHTML(typeParam.toUpperCase()) + ' ' : ''}questions found.</div>`;
             return;
         }
 
         container.innerHTML = sortedTopics.map(topic => {
-            const typeQuery = typeParam ? `&type=${typeParam}` : '';
+            const typeQuery = typeParam ? `&type=${encodeURIComponent(typeParam)}` : '';
             const t = topics[topic];
             // Calculation exactly as requested: completed / total * 100
             const percent = t.total > 0 ? Math.round((t.completed / t.total) * 100) : 0;
@@ -64,7 +65,7 @@ async function initCategories() {
                 <div style="position: relative;">
                     <a href="practice-mixed.html?topic=${encodeURIComponent(topic)}${typeQuery}" class="category-card">
                         <div style="width:100%">
-                            <h3>${topic}</h3>
+                            <h3>${escapeHTML(topic)}</h3>
                             
                             <div class="progress-section" style="margin-top: 1rem; margin-bottom:0.8rem;">
                                 <div style="background:#e9ecef; height:8px; border-radius:4px; overflow:hidden;">
@@ -88,7 +89,7 @@ async function initCategories() {
                         </div>
                     </a>
                     ${t.completed > 0 ? `
-                    <button class="reset-btn" data-topic="${topic}" title="Clear progress for this category">
+                    <button class="reset-btn" data-topic="${escapeHTML(topic)}" title="Clear progress for this category">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                         </svg>
@@ -210,7 +211,7 @@ function setupQuestionSearch(allQuestions) {
         const filtered = scoredResults.map(item => item.question);
 
         if (filtered.length === 0) {
-            resultsContainer.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #666; padding: 2rem;">No questions found matching "${e.target.value}".</div>`;
+            resultsContainer.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #666; padding: 2rem;">No questions found matching "${escapeHTML(e.target.value)}".</div>`;
             return;
         }
 
@@ -261,7 +262,7 @@ function renderSearchResults(questions, container) {
         }
 
         // Clean HTML tags and truncate
-        stemSnippet = stemSnippet.replace(/<[^>]*>?/gm, '');
+        stemSnippet = stripHTML(stemSnippet);
         if (stemSnippet.length > 100) stemSnippet = stemSnippet.substring(0, 100) + '...';
 
         // Show BOTH Display Code (e.g. "CR 1002") and Question Code (e.g. "1002")
@@ -280,11 +281,11 @@ function renderSearchResults(questions, container) {
                class="category-card" style="border-left-color: #ff9800; min-height: auto;">
                 <div style="width:100%">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
-                        <span style="font-weight:700; color:#e65100; font-size:0.9rem;">${code}</span>
+                        <span style="font-weight:700; color:#e65100; font-size:0.9rem;">${escapeHTML(code)}</span>
                     </div>
                     
-                    <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem; color: #333;">${category}</h4>
-                    <p style="font-size: 0.9rem; color: #555; margin: 0; line-height: 1.4;">${stemSnippet}</p>
+                    <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem; color: #333;">${escapeHTML(category)}</h4>
+                    <p style="font-size: 0.9rem; color: #555; margin: 0; line-height: 1.4;">${escapeHTML(stemSnippet)}</p>
                 </div>
             </a>
         `;

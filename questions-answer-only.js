@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js';
+import { sanitizeHTML, escapeHTML, stripHTML } from './utils.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
@@ -7,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Setup back links
     const backLink = document.getElementById('back-link');
     const backLinkBottom = document.getElementById('back-link-bottom');
-    const targetUrl = topicId ? `study.html?topic_id=${topicId}` : 'study.html';
+    const targetUrl = topicId ? `study.html?topic_id=${escapeHTML(topicId)}` : 'study.html';
 
     if (backLink) backLink.href = targetUrl;
 
@@ -329,10 +330,10 @@ function renderQuestionBlock(q, index) {
     // Header
     const headerHtml = `
         <div class="q-header">
-            <span>Question ${index + 1} (${q.type ? q.type.toUpperCase() : 'General'})</span>
-            <span>${q['Question Code'] || ''}</span>
+            <span>Question ${index + 1} (${q.type ? escapeHTML(q.type.toUpperCase()) : 'General'})</span>
+            <span>${escapeHTML(q['Question Code'] || '')}</span>
         </div>
-        <div class="q-stem">${q.stem}</div>
+        <div class="q-stem">${sanitizeHTML(q.stem)}</div>
     `;
 
     // Content based on Type
@@ -340,7 +341,7 @@ function renderQuestionBlock(q, index) {
     let explanationHtml = `
         <div class="correct-answer-box" style="display:none;">
              <span class="correct-label">Correct: ${getCorrectLabel(q)}</span>
-             <div class="explanation">${q.explanation}</div>
+             <div class="explanation">${sanitizeHTML(q.explanation)}</div>
         </div>
     `;
 
@@ -349,7 +350,7 @@ function renderQuestionBlock(q, index) {
             <div style="margin-bottom: 1rem;">
                 <input type="number" step="any" class="numeric-input" placeholder="Enter your answer" 
                        style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 150px;">
-                ${q.unit ? `<span style="margin-left: 5px; color: #666;">${q.unit}</span>` : ''}
+                ${q.unit ? `<span style="margin-left: 5px; color: #666;">${escapeHTML(q.unit)}</span>` : ''}
             </div>
             <button class="numeric-submit-btn" data-q-idx="${index}" 
                     style="padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">
@@ -362,7 +363,7 @@ function renderQuestionBlock(q, index) {
                 ${q.options.map((opt, i) => `
                     <label class="mba-option" style="display: block; padding: 8px; border: 1px solid #eee; border-radius: 4px; cursor: pointer;">
                         <input type="checkbox" value="${i}" style="margin-right: 8px;">
-                        ${String.fromCharCode(65 + i)}. ${opt}
+                        ${String.fromCharCode(65 + i)}. ${sanitizeHTML(opt)}
                     </label>
                 `).join('')}
             </div>
@@ -374,14 +375,14 @@ function renderQuestionBlock(q, index) {
     } else if (q.type === 'emq') {
         const stemsHtml = q.stems.map((stem, sIdx) => `
             <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed #eee;">
-                <div style="margin-bottom: 0.5rem; font-weight: 500;">${stem.stem}</div>
+                <div style="margin-bottom: 0.5rem; font-weight: 500;">${sanitizeHTML(stem.stem)}</div>
                 <select style="width: 100%; max-width: 400px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                     <option value="">Select option...</option>
-                    ${q.options.map((opt, i) => `<option value="${i}">${String.fromCharCode(65 + i)}. ${opt}</option>`).join('')}
+                    ${q.options.map((opt, i) => `<option value="${i}">${String.fromCharCode(65 + i)}. ${sanitizeHTML(opt)}</option>`).join('')}
                 </select>
                 <div class="emq-stem-explanation" style="display: none; margin-top: 0.5rem; padding: 10px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 4px;">
-                    <strong>Correct: ${String.fromCharCode(65 + stem.correct)}. ${q.options[stem.correct]}</strong><br>
-                    ${stem.explanation}
+                    <strong>Correct: ${String.fromCharCode(65 + stem.correct)}. ${sanitizeHTML(q.options[stem.correct])}</strong><br>
+                    ${sanitizeHTML(stem.explanation)}
                 </div>
             </div>
         `).join('');
@@ -390,7 +391,7 @@ function renderQuestionBlock(q, index) {
             <div class="emq-options-list" style="margin-bottom: 1.5rem; padding: 10px; background: #f5f5f5; border-radius: 4px;">
                 <strong>Options:</strong>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 5px; margin-top: 5px; font-size: 0.9em;">
-                    ${q.options.map((opt, i) => `<div><strong>${String.fromCharCode(65 + i)}.</strong> ${opt}</div>`).join('')}
+                    ${q.options.map((opt, i) => `<div><strong>${String.fromCharCode(65 + i)}.</strong> ${sanitizeHTML(opt)}</div>`).join('')}
                 </div>
             </div>
             ${stemsHtml}
@@ -408,7 +409,7 @@ function renderQuestionBlock(q, index) {
             <div class="q-options">
                 ${q.options.map((opt, i) => `
                     <div class="q-option sba-option" data-q-idx="${index}" data-opt-idx="${i}">
-                        ${String.fromCharCode(65 + i)}. ${opt}
+                        ${String.fromCharCode(65 + i)}. ${sanitizeHTML(opt)}
                     </div>
                 `).join('')}
             </div>
@@ -426,14 +427,14 @@ function renderQuestionBlock(q, index) {
 
 function getCorrectLabel(q) {
     if (q.type === 'numeric') {
-        return `${q.correctAnswer} ${q.unit || ''} (±${q.tolerance})`;
+        return `${q.correctAnswer} ${escapeHTML(q.unit || '')} (±${q.tolerance})`;
     } else if (q.type === 'mba') {
         const indices = q.correct || [];
         return indices.map(i => String.fromCharCode(65 + i)).join(', ');
     } else if (q.type === 'sba') {
         const idx = q.correct;
         if (typeof idx === 'number' && q.options[idx]) {
-            return `${String.fromCharCode(65 + idx)}. ${q.options[idx]}`;
+            return `${String.fromCharCode(65 + idx)}. ${sanitizeHTML(q.options[idx])}`;
         }
     }
     return 'See explanation';

@@ -1,5 +1,6 @@
 // Flagged Questions Page - Display and manage flagged questions
 import { supabase } from './supabase.js';
+import { sanitizeHTML, escapeHTML, stripHTML } from './utils.js';
 
 const FLAGGED_QUESTIONS_KEY_PRACTICE = 'akt-flagged-questions-practice';
 const FLAGGED_QUESTIONS_KEY_EXAM = 'akt-flagged-questions-exam';
@@ -276,12 +277,15 @@ async function fetchFlaggedQuestionDetails(questionIds, flaggedData, filter = 'a
                         'No preview available';
                 }
 
+                // Strip HTML for the preview
+                stemPreview = stripHTML(stemPreview);
+
                 html += `
         <div class="question-card" onclick="window.location.href='practice-mixed.html?mode=flagged&new=1&startId=${questionId}&filter=${filter}'" style="background: #fff; border: 2px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; transition: all 0.2s ease; cursor: pointer; position: relative;">
           <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
             <div>
-              <span style="background: #e3f2fd; color: #1565c0; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; margin-right: 0.5rem;">${codeText}</span>
-              <span style="background: ${statusColor}; color: white; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">${statusText}</span>
+              <span style="background: #e3f2fd; color: #1565c0; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; margin-right: 0.5rem;">${escapeHTML(codeText)}</span>
+              <span style="background: ${escapeHTML(statusColor)}; color: white; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">${escapeHTML(statusText)}</span>
               ${modeBadge}
             </div>
             <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -289,13 +293,13 @@ async function fetchFlaggedQuestionDetails(questionIds, flaggedData, filter = 'a
                 <path d="M3 2.5V10.5" stroke="#1976d2" stroke-width="2" stroke-linecap="round"/>
                 <path d="M3 2.5L10 3.5L7.5 6L10 8.5L3 9.5" fill="#1976d2" stroke="#1976d2" stroke-width="1.5"/>
               </svg>
-              <button class="delete-flag-btn" data-question-id="${questionId}" data-mode="${flagInfo.mode}" style="background: #e53935; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: background 0.2s;">
+              <button class="delete-flag-btn" data-question-id="${escapeHTML(questionId)}" data-mode="${escapeHTML(flagInfo.mode)}" style="background: #e53935; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: background 0.2s;">
                 Remove
               </button>
             </div>
           </div>
-          <div style="color: #333; line-height: 1.6;">${stemPreview}</div>
-          ${question.topic ? `<div style="margin-top: 0.75rem; color: #666; font-size: 0.875rem;"><strong>Topic:</strong> ${question.topic}</div>` : ''}
+          <div style="color: #333; line-height: 1.6;">${escapeHTML(stemPreview)}</div>
+          ${question.topic ? `<div style="margin-top: 0.75rem; color: #666; font-size: 0.875rem;"><strong>Topic:</strong> ${escapeHTML(question.topic)}</div>` : ''}
         </div>
       `;
             });
@@ -323,7 +327,7 @@ async function fetchFlaggedQuestionDetails(questionIds, flaggedData, filter = 'a
 
     } catch (error) {
         console.error('Error fetching flagged questions:', error);
-        container.innerHTML = `<div class="error-message">Error loading question details: ${error.message || 'Unknown error'}. Please try again.</div>`;
+        container.innerHTML = `<div class="error-message">Error loading question details: ${escapeHTML(error.message || 'Unknown error')}. Please try again.</div>`;
     }
 }
 
@@ -368,4 +372,3 @@ window.addEventListener('pageshow', function (event) {
         initializePage();
     }
 });
-
