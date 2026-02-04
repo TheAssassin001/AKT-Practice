@@ -156,9 +156,52 @@ body {
     margin-left: 0.7rem;
     vertical-align: middle;
     padding: 0;
-    line-height: 1;
     display: flex;
     align-items: center;
+}
+
+/* Comment System Styles */
+.comments-list {
+    max-height: 250px;
+    overflow-y: auto;
+    background: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.comment-bubble {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 0.6rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.comment-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #888;
+    margin-bottom: 0.3rem;
+    font-weight: 500;
+}
+
+.comment-text {
+    color: #333;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.comment-form textarea:focus,
+.comment-form input:focus {
+    outline: none;
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 166, 0.1) !important;
 }
 
 .question-header {
@@ -574,6 +617,32 @@ body {
 
 .practice-card.mixed-card h3 {
     color: #2e7d32;
+}
+
+/* Comments Card (Yellow) */
+.practice-card.comments-card {
+    border-left-color: #cddc39;
+}
+
+.practice-card.comments-card::before {
+    background: linear-gradient(to bottom, #cddc39, #afb42b);
+}
+
+.practice-card.comments-card h3 {
+    color: #9e9d24;
+    /* Darker yellow/olive for better readability */
+}
+
+.practice-card.comments-card .test-detail-item svg {
+    color: #9e9d24;
+}
+
+.practice-card.comments-card .card-cta {
+    color: #827717;
+}
+
+.practice-card.comments-card:hover {
+    border-color: #cddc39;
 }
 
 .practice-card.mixed-card .test-detail-item svg {

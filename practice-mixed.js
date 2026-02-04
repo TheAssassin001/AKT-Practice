@@ -502,6 +502,9 @@ async function initializeApp() {
   // Setup global keyboard navigation
   setupKeyboardNavigation();
 
+  // Setup Comment System
+  setupCommentSystem();
+
   setupLabModal();
   setupExitBtn();
 }
@@ -945,12 +948,14 @@ function renderQuestion() {
   const q = questions[currentQuestion];
   if (!q || !q.type) {
     const section = document.getElementById('question-section');
-    if (section) {
-      section.innerHTML = '<div class="error-message">Invalid question data. Please contact support.</div>';
-    }
-    console.error('Invalid or missing question data:', q);
+    if (section) section.innerHTML = '<div class="error-message">Invalid question data.</div>';
     return;
   }
+
+  // Load comments for this question
+  loadComments(q.id);
+
+
   // Only reset numeric input and explanation if not answered yet
   if (q.type === 'numeric' && questionStates[currentQuestion].status === 'not-attempted') {
     setTimeout(() => {
@@ -2810,3 +2815,105 @@ function startTest() {
 
 // End of file. Initialization is handled by initializeApp() on DOMContentLoaded.
 // ...existing code for normal mode...
+
+// --- Community Comment System ---
+async function loadComments(questionId) {
+  const list = document.getElementById('comments-list');
+  if (!list) return;
+
+  // Check if comments should be hidden (Mock Mode & In Progress)
+  if (quizMode === 'exam' && !testEnded) {
+    list.style.display = 'none';
+    const section = document.querySelector('.comment-section');
+    if (section) section.style.display = 'none';
+    return;
+  } else {
+    // Ensure it's visible if previously hidden
+    list.style.display = 'block';
+    const section = document.querySelector('.comment-section');
+    if (section) section.style.display = 'block';
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('question_comments')
+      .select('*')
+      .eq('question_id', String(questionId))
+      .order('created_at', { ascending: true }); // Oldest first
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      list.innerHTML = '<div style="text-align: center; color: #ccc; font-size: 0.85rem; padding: 1rem;">No comments yet. Be the first to start the discussion!</div>';
+      return;
+    }
+
+    list.innerHTML = data.map(c => {
+      const date = new Date(c.created_at).toLocaleDateString() + ' ' + new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const name = c.user_name || 'Anonymous';
+      // Basic XSS protection for display
+      const text = c.comment_text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+      return `
+        <div class="comment-bubble">
+          <div class="comment-meta">
+            <span>${name}</span>
+            <span>${date}</span>
+          </div>
+          <div class="comment-text">${text}</div>
+        </div>
+      `;
+    }).join('');
+
+    // Scroll to bottom
+    list.scrollTop = list.scrollHeight;
+
+  } catch (err) {
+    console.error('Error loading comments:', err);
+    list.innerHTML = '<div style="text-align: center; color: #d32f2f; font-size: 0.85rem; padding: 1rem;">Failed to load comments.</div>';
+  }
+}
+
+async function postComment() {
+  const btn = document.getElementById('post-comment-btn');
+  const userInput = document.getElementById('comment-user');
+  const textInput = document.getElementById('comment-text');
+
+  if (!textInput.value.trim()) return;
+  if (!questions || !questions[currentQuestion]) return;
+
+  const originalText = btn.textContent;
+  btn.textContent = 'Posting...';
+  btn.disabled = true;
+
+  try {
+    const payload = {
+      question_id: String(questions[currentQuestion].id),
+      user_name: userInput.value.trim() || 'Anonymous',
+      comment_text: textInput.value.trim()
+    };
+
+    const { error } = await supabase
+      .from('question_comments')
+      .insert([payload]);
+
+    if (error) throw error;
+
+    textInput.value = ''; // Clear input
+    loadComments(questions[currentQuestion].id); // Refresh list
+
+  } catch (err) {
+    console.error('Error posting comment:', err);
+    alert('Failed to post comment. Please try again.');
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+function setupCommentSystem() {
+  const postBtn = document.getElementById('post-comment-btn');
+  if (postBtn) {
+    postBtn.onclick = postComment;
+  }
+}
