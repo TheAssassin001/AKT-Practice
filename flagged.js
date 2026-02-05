@@ -1,6 +1,6 @@
 // Flagged Questions Page - Display and manage flagged questions
 import { supabase } from './supabase.js';
-import { sanitizeHTML, escapeHTML, stripHTML } from './utils.js';
+import { sanitizeHTML, escapeHTML, stripHTML, formatQuestionCode } from './utils.js';
 
 const FLAGGED_QUESTIONS_KEY_PRACTICE = 'akt-flagged-questions-practice';
 const FLAGGED_QUESTIONS_KEY_EXAM = 'akt-flagged-questions-exam';
@@ -222,7 +222,7 @@ async function fetchFlaggedQuestionDetails(questionIds, flaggedData, filter = 'a
 
                 // Use Question Code exactly as in practice-mixed.js
                 const displayCode = question['Display Code'] || '';
-                const questionCode = question['Question Code'] || '';
+                const questionCode = formatQuestionCode(question);
                 const codeText = displayCode && questionCode
                     ? `${displayCode} ${questionCode}`
                     : (displayCode || questionCode || '');

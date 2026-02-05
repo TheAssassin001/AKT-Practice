@@ -72,3 +72,28 @@ export function stripHTML(html) {
     tempDiv.innerHTML = html;
     return tempDiv.textContent || tempDiv.innerText || "";
 }
+
+/**
+ * Formats a question code with its display prefix for consistent display across the application.
+ * @param {Object} question - The question object containing code fields.
+ * @returns {string} - The formatted question code (e.g., "AKT 1014" or "1014").
+ */
+export function formatQuestionCode(question) {
+    if (!question) return '';
+
+    const displayCode = question['Display Code'] || '';
+    const questionCode = question['Question Code'] || '';
+
+    // If both exist, combine them with a space
+    if (displayCode && questionCode) {
+        return `${displayCode} ${questionCode}`;
+    }
+
+    // If only question code exists, return it
+    if (questionCode) {
+        return questionCode;
+    }
+
+    // Fallback to question ID
+    return `Q${question.id || ''}`;
+}

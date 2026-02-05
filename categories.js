@@ -1,5 +1,5 @@
 import { supabase } from './supabase.js';
-import { sanitizeHTML, escapeHTML, stripHTML } from './utils.js';
+import { sanitizeHTML, escapeHTML, stripHTML, formatQuestionCode } from './utils.js';
 
 async function initCategories() {
     const container = document.getElementById('category-container');
@@ -266,7 +266,7 @@ function renderSearchResults(questions, container) {
         if (stemSnippet.length > 100) stemSnippet = stemSnippet.substring(0, 100) + '...';
 
         // Show BOTH Display Code (e.g. "CR 1002") and Question Code (e.g. "1002")
-        const qCode = q['Question Code'] || `Q${q.id}`;
+        const qCode = formatQuestionCode(q);
         const dCode = q['Display Code'] || q['display_code'];
 
         let code = dCode ? dCode : qCode;

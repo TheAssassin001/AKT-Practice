@@ -1,5 +1,5 @@
 import { supabase } from './supabase.js';
-import { sanitizeHTML, escapeHTML } from './utils.js';
+import { sanitizeHTML, escapeHTML, formatQuestionCode } from './utils.js';
 
 async function initCommentsPage() {
     const container = document.getElementById('comments-container');
@@ -66,7 +66,7 @@ async function initCommentsPage() {
             card.className = 'comment-summary-card';
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 700; color: #2563a6;">${escapeHTML(q['Question Code'] || 'Question ' + q.id)}</span>
+                    <span style="font-weight: 700; color: #2563a6;">${escapeHTML(formatQuestionCode(q) || 'Question ' + q.id)}</span>
                     <span class="comment-count-badge">${stats.count} comment${stats.count !== 1 ? 's' : ''}</span>
                 </div>
                 

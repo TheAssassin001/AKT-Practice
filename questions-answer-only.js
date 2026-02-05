@@ -1,5 +1,5 @@
 import { supabase } from './supabase.js';
-import { sanitizeHTML, escapeHTML, stripHTML } from './utils.js';
+import { sanitizeHTML, escapeHTML, stripHTML, formatQuestionCode } from './utils.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const params = new URLSearchParams(window.location.search);
@@ -331,7 +331,7 @@ function renderQuestionBlock(q, index) {
     const headerHtml = `
         <div class="q-header">
             <span>Question ${index + 1} (${q.type ? escapeHTML(q.type.toUpperCase()) : 'General'})</span>
-            <span>${escapeHTML(q['Question Code'] || '')}</span>
+            <span>${escapeHTML(formatQuestionCode(q))}</span>
         </div>
         <div class="q-stem">${sanitizeHTML(q.stem)}</div>
     `;

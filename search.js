@@ -1,5 +1,5 @@
 import { supabase } from './supabase.js';
-import { sanitizeHTML, escapeHTML, stripHTML } from './utils.js';
+import { sanitizeHTML, escapeHTML, stripHTML, formatQuestionCode } from './utils.js';
 
 let allQuestionsCache = [];
 let currentResults = [];
@@ -97,7 +97,7 @@ function renderBatch() {
     const html = nextBatch.map(q => {
         const type = q.type || 'unknown';
         const category = q.Category || 'General';
-        const code = q['Question Code'] || q['Display Code'] || `Q${q.id}`;
+        const code = formatQuestionCode(q);
 
         // Snippet
         let stemSnippet = typeof q.stem === 'string' ? q.stem : 'Question Text';

@@ -76,7 +76,7 @@ async function reloadQuestions() {
 // All question data is loaded from Supabase and normalized here.
 // Backend changes to data structure do NOT affect frontend exam behaviour logic.
 import { supabase } from './supabase.js';
-import { sanitizeHTML, escapeHTML, stripHTML } from './utils.js';
+import { sanitizeHTML, escapeHTML, stripHTML, formatQuestionCode } from './utils.js';
 
 let allQuestions = [];
 let questions = [];
@@ -999,9 +999,7 @@ function renderQuestion() {
   // Build header parts
   const questionCounter = `Q${currentQuestion + 1}`;
   const categoryName = q.Category || '';
-  const displayCode = q['Display Code'] || '';
-  const questionCode = q['Question Code'] || '';
-  const codeText = displayCode && questionCode ? `${displayCode} ${questionCode}` : (displayCode || questionCode || '');
+  const codeText = formatQuestionCode(q);
 
   const sharedHeader = `
     <div class="question-header">
