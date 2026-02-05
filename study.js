@@ -92,10 +92,10 @@ async function loadSpecificGuide(guideId) {
 
         if (!data) {
             dynamicContent.innerHTML = `
-                <div class="error-message">
-                    <h3>Guide Not Found</h3>
-                    <p>Sorry, we couldn't find the requested revision guide.</p>
-                    <a href="study.html" class="back-link">&larr; Back to Study Resources</a>
+                <div style="padding: 3rem 2rem; text-align: center; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px;">
+                    <h3 style="color: #856404; margin-top: 0;">Guide Not Found</h3>
+                    <p style="color: #856404;">Sorry, we couldn't find the requested revision guide. It may have been removed or the link is incorrect.</p>
+                    <a href="study.html" class="back-link" style="display: inline-block; margin-top: 1rem; color: #1976d2; text-decoration: none; font-weight: 600;">&larr; Back to Study Resources</a>
                 </div>`;
             return;
         }
@@ -104,11 +104,19 @@ async function loadSpecificGuide(guideId) {
 
     } catch (err) {
         console.error('Error loading specific guide:', err);
+        const errorMessage = err.message || 'Unknown error';
+        const isPermissionError = errorMessage.includes('permission') || err.code === 'PGRST301';
+
         dynamicContent.innerHTML = `
-            <div class="error-message">
-                <h3>Error Loading Guide</h3>
-                <p>Unable to load content. Please try again later.</p>
-                <a href="study.html" class="back-link">&larr; Back to Study Resources</a>
+            <div style="padding: 3rem 2rem; text-align: center; background: ${isPermissionError ? '#fff3cd' : '#f8d7da'}; border: 1px solid ${isPermissionError ? '#ffc107' : '#f5c6cb'}; border-radius: 8px;">
+                <h3 style="color: ${isPermissionError ? '#856404' : '#721c24'}; margin-top: 0;">${isPermissionError ? 'Access Configuration Required' : 'Error Loading Guide'}</h3>
+                <p style="color: ${isPermissionError ? '#856404' : '#721c24'};">
+                    ${isPermissionError
+                ? 'The revision guides feature requires permission updates in the database.'
+                : 'Unable to load content. Please try again later.'}
+                </p>
+                <p style="color: ${isPermissionError ? '#856404' : '#721c24'}; font-size: 0.85rem; font-family: monospace; margin-top: 1rem;">${errorMessage}</p>
+                <a href="study.html" class="back-link" style="display: inline-block; margin-top: 1rem; color: #1976d2; text-decoration: none; font-weight: 600;">&larr; Back to Study Resources</a>
             </div>`;
     }
 }
@@ -166,10 +174,14 @@ async function loadRevisionGuide(topicId) {
 
         if (!guides || guides.length === 0) {
             dynamicContent.innerHTML = `
-                <div class="error-message">
-                    <h3>Guide Not Found</h3>
-                    <p>Sorry, we couldn't find the requested revision guide.</p>
-                    <a href="study.html" class="back-link">&larr; Back to Study Resources</a>
+                <div style="padding: 3rem 2rem; text-align: center; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#1976d2" stroke-width="1.5" style="margin-bottom: 1rem;">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    <h3 style="color: #1565c0; margin: 0 0 0.5rem 0;">No Guides Found for This Topic</h3>
+                    <p style="color: #1976d2; margin: 0;">Revision guides for this topic are being prepared and will be available soon.</p>
+                    <a href="study.html" class="back-link" style="display: inline-block; margin-top: 1.5rem; color: #1976d2; text-decoration: none; font-weight: 600;">&larr; Back to Study Resources</a>
                 </div>`;
             return;
         }
@@ -184,11 +196,19 @@ async function loadRevisionGuide(topicId) {
 
     } catch (err) {
         console.error('Error loading guide:', err);
+        const errorMessage = err.message || 'Unknown error';
+        const isPermissionError = errorMessage.includes('permission') || err.code === 'PGRST301';
+
         dynamicContent.innerHTML = `
-            <div class="error-message">
-                <h3>Error Loading Guide</h3>
-                <p>Unable to load content. Please try again later.</p>
-                <a href="study.html" class="back-link">&larr; Back to Study Resources</a>
+            <div style="padding: 3rem 2rem; text-align: center; background: ${isPermissionError ? '#fff3cd' : '#f8d7da'}; border: 1px solid ${isPermissionError ? '#ffc107' : '#f5c6cb'}; border-radius: 8px;">
+                <h3 style="color: ${isPermissionError ? '#856404' : '#721c24'}; margin-top: 0;">${isPermissionError ? 'Access Configuration Required' : 'Error Loading Guide'}</h3>
+                <p style="color: ${isPermissionError ? '#856404' : '#721c24'};">
+                    ${isPermissionError
+                ? 'The revision guides feature requires permission updates in the database.'
+                : 'Unable to load content. Please try again later.'}
+                </p>
+                <p style="color: ${isPermissionError ? '#856404' : '#721c24'}; font-size: 0.85rem; font-family: monospace; margin-top: 1rem;">${errorMessage}</p>
+                <a href="study.html" class="back-link" style="display: inline-block; margin-top: 1rem; color: #1976d2; text-decoration: none; font-weight: 600;">&larr; Back to Study Resources</a>
             </div>`;
     }
 }
@@ -259,14 +279,71 @@ async function loadAllGuides() {
             .select('*')
             .order('title');
 
-        if (error) throw error;
+        if (error) {
+            // Distinguish between different error types
+            console.error('Error loading guides list:', error);
+
+            // Check for common error scenarios
+            if (error.code === '42P01') {
+                // Table doesn't exist
+                container.innerHTML = `
+                    <div style="grid-column: 1/-1; padding: 2rem; text-align: center; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px;">
+                        <h3 style="color: #856404; margin-top: 0;">Configuration Required</h3>
+                        <p style="color: #856404;">The revision guides table hasn't been set up yet in the database.</p>
+                        <p style="color: #856404; font-size: 0.9rem;">Please contact the administrator to configure this feature.</p>
+                    </div>
+                `;
+            } else if (error.code === 'PGRST301' || error.message.includes('permission')) {
+                // Permission/RLS issue
+                container.innerHTML = `
+                    <div style="grid-column: 1/-1; padding: 2rem; text-align: center; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px;">
+                        <h3 style="color: #856404; margin-top: 0;">Access Configuration Required</h3>
+                        <p style="color: #856404;">The revision guides feature requires permission updates in the database.</p>
+                        <p style="color: #856404; font-size: 0.9rem;">Please contact the administrator to enable anonymous read access.</p>
+                    </div>
+                `;
+            } else {
+                // Generic error
+                container.innerHTML = `
+                    <div style="grid-column: 1/-1; padding: 2rem; text-align: center; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px;">
+                        <h3 style="color: #721c24; margin-top: 0;">Error Loading Guides</h3>
+                        <p style="color: #721c24;">Failed to load revision guides. Please try reloading the page.</p>
+                        <p style="color: #721c24; font-size: 0.85rem; font-family: monospace;">${error.message}</p>
+                    </div>
+                `;
+            }
+            return;
+        }
 
         allRevisionGuides = data || [];
+
+        // Handle empty state
+        if (allRevisionGuides.length === 0) {
+            container.innerHTML = `
+                <div style="grid-column: 1/-1; padding: 3rem 2rem; text-align: center; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#1976d2" stroke-width="1.5" style="margin-bottom: 1rem;">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    <h3 style="color: #1565c0; margin: 0 0 0.5rem 0;">No Revision Guides Available Yet</h3>
+                    <p style="color: #1976d2; margin: 0;">Revision guides are being prepared and will be available soon.</p>
+                    <p style="color: #1976d2; font-size: 0.9rem; margin-top: 1rem;">In the meantime, try practicing with our question banks!</p>
+                </div>
+            `;
+            return;
+        }
+
         renderGuidesToGrid(allRevisionGuides);
 
     } catch (err) {
-        console.error('Error loading guides list:', err);
-        container.innerHTML = '<div style="color: #d32f2f;">Failed to load guides. Please try reloading the page.</div>';
+        console.error('Unexpected error loading guides list:', err);
+        container.innerHTML = `
+            <div style="grid-column: 1/-1; padding: 2rem; text-align: center; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px;">
+                <h3 style="color: #721c24; margin-top: 0;">Unexpected Error</h3>
+                <p style="color: #721c24;">An unexpected error occurred. Please try reloading the page.</p>
+                <p style="color: #721c24; font-size: 0.85rem; font-family: monospace;">${err.message}</p>
+            </div>
+        `;
     }
 }
 
