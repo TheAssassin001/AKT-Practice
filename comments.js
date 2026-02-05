@@ -38,7 +38,7 @@ async function initCommentsPage() {
         const qIds = Object.keys(questionMap);
         const { data: questions, error: qError } = await supabase
             .from('questions')
-            .select('id, stem, "Question Code"')
+            .select('id, stem, "Question Code", "Display Code"')
             .in('id', qIds);
 
         if (qError) throw qError;
@@ -64,9 +64,14 @@ async function initCommentsPage() {
             const card = document.createElement('a');
             card.href = `practice-mixed.html?mode=practice&startId=${q.id}`; // Add startId logic to practice-mixed.js!
             card.className = 'comment-summary-card';
+            // Show BOTH Display Code and Question Code (e.g., "CR 1014")
+            const displayCode = q['Display Code'] || '';
+            const questionCode = q['Question Code'] || '';
+            const codeText = displayCode && questionCode ? `${displayCode} ${questionCode}` : (displayCode || questionCode || 'Q-' + q.id);
+
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 700; color: #2563a6;">${escapeHTML(q['Question Code'] || 'Q-' + q.id)}</span>
+                    <span style="font-weight: 700; color: #2563a6;">${escapeHTML(codeText)}</span>
                     <span class="comment-count-badge">${stats.count} comment${stats.count !== 1 ? 's' : ''}</span>
                 </div>
                 
